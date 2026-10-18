@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Top-right now-playing banner: art + text (opens the app), play/pause, next. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/nowPlaying"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="10dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <LinearLayout
+        android:id="@+id/npBody"
+        android:layout_width="200dp"
+        android:layout_height="56dp"
+        android:background="@drawable/np_bg"
+        android:focusable="true"
+        android:clickable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="6dp">
+
+        <ImageView
+            android:id="@+id/npArt"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="@null" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:duplicateParentState="true"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/npTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:duplicateParentState="true"
+                android:textColor="@drawable/pill_text"
+                android:textSize="14sp"
+                android:fontFamily="@font/outfit"
+                android:fontVariationSettings="'wght' 500" />
+
+            <TextView
+                android:id="@+id/npSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:duplicateParentState="true"
+                android:alpha="0.7"
+                android:textColor="@drawable/pill_text"
+                android:textSize="12sp"
+                android:fontFamily="@font/outfit" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/npPlay"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="8dp"
+        android:padding="10dp"
+        android:background="@drawable/round_btn"
+        android:tint="@drawable/pill_text"
+        android:src="@drawable/ic_play"
+        android:focusable="true"
+        android:clickable="true"
+        android:contentDescription="@null" />
+
+    <ImageView
+        android:id="@+id/npNext"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="6dp"
+        android:padding="10dp"
+        android:background="@drawable/round_btn"
+        android:tint="@drawable/pill_text"
+        android:src="@drawable/ic_next"
+        android:focusable="true"
+        android:clickable="true"
+        android:contentDescription="@null" />
+</LinearLayout>

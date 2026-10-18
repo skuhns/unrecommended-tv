@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Picture panel: slides in on the right over the home screen. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ScrollView
+        android:layout_width="340dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:layout_margin="16dp"
+        android:background="@drawable/panel_bg"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/picture"
+                android:textColor="#FFFFFFFF"
+                android:textSize="26sp"
+                android:fontFamily="@font/outfit"
+                android:fontVariationSettings="'wght' 400" />
+
+            <TextView
+                android:id="@+id/status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="#B3FFFFFF"
+                android:textSize="13sp"
+                android:fontFamily="@font/outfit" />
+
+            <TextView
+                style="@style/SectionLabel"
+                android:layout_marginStart="2dp"
+                android:text="@string/looks" />
+
+            <LinearLayout
+                android:id="@+id/presets"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                style="@style/SectionLabel"
+                android:layout_marginStart="2dp"
+                android:layout_marginTop="28dp"
+                android:text="@string/tv_settings" />
+
+            <TextView
+                android:id="@+id/openBrightness"
+                style="@style/PanelButton"
+                android:text="@string/brightness" />
+
+            <TextView
+                android:id="@+id/openModes"
+                style="@style/PanelButton"
+                android:text="@string/picture_mode" />
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

@@ -34,7 +34,7 @@ DynamicAnimation, no Kotlin, no Compose, no network. It targets TVs with 1 GB of
   screenshot: `tools/tv.py 'input keyevent KEYCODE_DPAD_DOWN; screencap -p /sdcard/s.png'` then
   `tools/tv.py --pull /sdcard/s.png s.png`. Include a screenshot in your pull request.
 
-Build with `TV_HOST=<ip> launcher/build-and-install.sh` (JDK 17, Android SDK platform 34 and
+Build with `TV_SERIAL=<ip:port> launcher/build-and-install.sh` (JDK 17, Android SDK platform 34 and
 build-tools 34.0.0; on macOS `brew install openjdk@17 android-commandlinetools` then
 `sdkmanager "platforms;android-34" "build-tools;34.0.0"`).
 

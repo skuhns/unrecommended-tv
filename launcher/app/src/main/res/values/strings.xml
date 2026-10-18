@@ -1,19 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Home</string>
+    <string name="more">More</string>
     <string name="inputs">Inputs</string>
-    <string name="wifi">Wi-Fi</string>
-    <string name="settings">Settings</string>
-    <string name="choose_input">Inputs</string>
-    <string name="connected">Connected</string>
-    <string name="standby">Standby</string>
-    <string name="not_connected">No device</string>
-    <string name="live_tv">Live TV</string>
-    <string name="no_inputs">No inputs found</string>
+    <string name="all_apps">All apps</string>
+    <string name="hide_apps">Hide apps</string>
     <string name="good_morning">Good morning</string>
     <string name="good_afternoon">Good afternoon</string>
     <string name="good_evening">Good evening</string>
     <string name="good_night">Good night</string>
-    <string name="ethernet">Ethernet</string>
-    <string name="offline">Offline</string>
+    <string name="search">Search</string>
+    <string name="picture">Picture</string>
+    <string name="np_idle_title">Spotify</string>
+    <string name="np_idle_subtitle">Press play to resume</string>
+    <string name="search_hint">Search apps, movies and shows</string>
+    <string name="apps">Apps</string>
+    <string name="movies_shows">Movies &amp; shows</string>
+    <string name="watch_on">Watch on</string>
+    <string name="rent_buy">Rent or buy</string>
+    <string name="not_on_your_apps">Not on your apps. Try YouTube:</string>
+    <string name="search_youtube">Search YouTube</string>
+    <string name="brightness">Brightness</string>
+    <string name="looks">Looks</string>
+    <string name="picture_service_off">Picture control is off. Enable "Home picture control" in Settings → Accessibility.</string>
+    <string name="picture_service_label">Home picture control</string>
+    <string name="picture_service_desc">Lets the Home launcher change picture mode and brightness by operating the TV\'s picture menu for you.</string>
+    <string name="tv_settings">TV settings</string>
+    <string name="picture_mode">Picture mode</string>
 </resources>

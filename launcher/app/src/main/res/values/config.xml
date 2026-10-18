@@ -1,27 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Launcher configuration. Edit this file, then run launcher/build-and-install.sh.
-  Package names: on the TV run `pm list packages` (tools/tv.py 'pm list packages').
+  Package names: on the TV run `pm list packages`.
 -->
 <resources>
 
-    <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
-    <string-array name="dock_apps">
+    <!-- Big tiles at the top, in this order (fills a 3-wide grid). Missing apps are skipped. -->
+    <string-array name="front_apps">
         <item>com.netflix.ninja</item>
+        <item>com.wbd.stream</item>
+        <item>com.apple.atve.androidtv.appletv</item>
         <item>com.amazon.amazonvideo.livingroom</item>
+        <item>com.peacocktv.peacockandroid</item>
+        <item>com.spotify.tv.android</item>
+    </string-array>
+
+    <!-- Small side-scrolling row under the big tiles, in this order. -->
+    <string-array name="tier_apps">
+        <item>com.android.tv.settings</item>
         <item>com.google.android.youtube.tv</item>
-        <item>in.startv.hotstar</item>
+        <item>com.hulu.livingroomplus</item>
+        <item>com.disney.disneyplus</item>
+        <item>com.tailscale.ipn</item>
+        <item>com.phlox.tvwebbrowser</item>
+        <item>com.vt.tv.tvcenter</item>
     </string-array>
 
-    <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers). -->
+    <!-- Never shown, not even under "All apps". Everything else not listed above goes under "All apps". -->
     <string-array name="hidden_apps">
-        <item>com.mediatek.wwtv.tvcenter</item>
-        <item>com.mitv.gallery</item>
     </string-array>
 
-    <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit. -->
-    <string name="live_tv_package" translatable="false">com.mediatek.wwtv.tvcenter</string>
-
-    <!-- Tiles per row in the grid; the dock always has this many slots. -->
-    <integer name="columns">4</integer>
+    <integer name="front_columns">3</integer>
+    <integer name="all_apps_columns">5</integer>
 </resources>

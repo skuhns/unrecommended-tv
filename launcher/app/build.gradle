@@ -2,6 +2,10 @@ plugins {
     id 'com.android.application'
 }
 
+def localProps = new Properties()
+def localFile = rootProject.file('local.properties')
+if (localFile.exists()) localFile.withInputStream { localProps.load(it) }
+
 android {
     namespace 'com.gathin.tvhome'
     compileSdk 34
@@ -12,6 +16,12 @@ android {
         targetSdk 29
         versionCode 2
         versionName '2.0'
+        // TMDB API read token for search; keep it in local.properties (git-ignored) as tmdb.token=...
+        buildConfigField 'String', 'TMDB_TOKEN', "\"${localProps.getProperty('tmdb.token', '')}\""
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     buildTypes {

@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
-# Build the launcher APK and install it on the TV as the default home screen.
+# Build the launcher APK, install it on the TV and make it the Home screen.
+# The stock launcher stays installed (only the default changes); see README.
+#
+# Usage: TV_SERIAL=172.20.10.12:33291 launcher/build-and-install.sh
 set -euo pipefail
 cd "$(dirname "$0")"
-: "${TV_HOST:?set TV_HOST to the TV IP address, e.g. TV_HOST=192.168.1.50 $0}"
-STOCK_LAUNCHER="${STOCK_LAUNCHER:-com.google.android.tvlauncher}"
+: "${TV_SERIAL:?set TV_SERIAL to the adb serial (ip:port from 'adb devices'), e.g. TV_SERIAL=192.168.1.50:5555 $0}"
 export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}"
 export ANDROID_HOME="${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}"
 export PATH="$JAVA_HOME/bin:$PATH"
 [ -f local.properties ] || echo "sdk.dir=$ANDROID_HOME" > local.properties
 ./gradlew assembleDebug -q --console=plain
-PY=../tools/venv/bin/python
-APK=app/build/outputs/apk/debug/app-debug.apk
-"$PY" -I ../tools/b64push.py "$APK" /data/local/tmp/tvhome.apk
-printf '%s\n' \
-  "pm install -r /data/local/tmp/tvhome.apk" \
-  "rm -f /data/local/tmp/tvhome.apk" \
-  "pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted" \
-  "cmd package set-home-activity --user 0 com.gathin.tvhome" \
-  "pm disable-user --user 0 $STOCK_LAUNCHER" \
-  | "$PY" -I ../tools/tv.py --batch
+adb -s "$TV_SERIAL" install -r app/build/outputs/apk/debug/app-debug.apk
+adb -s "$TV_SERIAL" shell cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity
+# Now-playing banner: notification access lets it read media sessions.
+adb -s "$TV_SERIAL" shell cmd notification allow_listener com.gathin.tvhome/com.gathin.tvhome.MediaListener
+# Picture panel: accessibility service that operates the TV's picture menu (kept alongside any others).
+SVC=com.gathin.tvhome/com.gathin.tvhome.PictureService
+CUR=$(adb -s "$TV_SERIAL" shell settings get secure enabled_accessibility_services | tr -d '\r')
+case "$CUR" in *"$SVC"*) ;; ""|null) CUR="$SVC" ;; *) CUR="$CUR:$SVC" ;; esac
+adb -s "$TV_SERIAL" shell settings put secure enabled_accessibility_services "$CUR"
+adb -s "$TV_SERIAL" shell settings put secure accessibility_enabled 1
 echo "Installed. Press Home on the remote to see it."

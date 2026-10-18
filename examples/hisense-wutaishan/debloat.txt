@@ -1,0 +1,37 @@
+# Hisense Google TV (model "SmartTV 4K FFM", device wutaishan), Android 14 (SDK 34), build UKN6.251123.001.049
+#
+# Apply:   adb shell pm disable-user --user 0 <pkg>   (one per call), or tools/disable.sh
+# Undo:    tools/restore.sh examples/hisense-wutaishan/debloat.txt com.google.android.apps.tv.launcherx
+# Everything is DISABLED, not uninstalled.
+#
+# Kept on purpose: launcherx (stock home, kept installed but not default), dreamx (ambient screensaver),
+# katniss (mic button / Assistant), AirPlay (com.mediatek.Airplay*, com.vt.tv.airplaykeycheck),
+# Chromecast (mediashell), DLNA, remote pairing, all com.vt.* TV/input/picture/tuner/OTA services.
+
+# Ads and promotions
+net.vidaatv.hisense.android.tv         # VIDAA free ad-supported channels
+com.vidaa.oemtabcontentprovider        # Hisense content rows in the Google TV home
+android.autoinstalls.config.google.gtvpai   # silently installs promoted apps
+com.vt.storemode                       # retail demo mode
+com.google.android.play.games
+com.google.android.feedback
+
+# Hisense apps and extras
+com.vt.tv.mobiledeviceconnectiontips
+com.vt.hishow
+com.vt.tv.ai_sense
+com.vt.tv.singlelisten
+com.vt.tv.protector
+com.vt.tv.mediacenter                  # USB media player, re-enable to play files from a USB stick
+com.hisense.odinbrowser
+com.vt.alexa
+com.vt.tv.aiot
+com.vt.tv.aiotprotocolapp
+com.vt.tv.aiotsystemservice
+
+# Stock Google TV launcher and the service that re-enables it, replaced by launcher/.
+# Google TV gives launcherx a higher HOME priority than any other app, so it has to be disabled
+# for our launcher to get the Home button. Ambient screensaver (dreamx), mic button (katniss) and
+# the remote's Input button all keep working without it.
+com.google.android.tungsten.setupwraith
+com.google.android.apps.tv.launcherx

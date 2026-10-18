@@ -2,11 +2,11 @@
 # Re-enable every package listed in a debloat file, restore the stock launcher as home and reset
 # animation scales. Pass the same list you used with tools/disable.sh.
 #
-# Usage: TV_HOST=192.168.1.50 tools/restore.sh examples/xiaomi-mi-tv-4a/debloat.txt [stock.launcher.package]
+# Usage: TV_HOST=192.168.1.50 tools/restore.sh examples/xiaomi-mi-tv-4a/debloat.txt [stock launcher package, default: Google TV launcherx]
 set -euo pipefail
 cd "$(dirname "$0")/.."
-LIST="${1:?usage: restore.sh <debloat list> [stock launcher package]}"
-STOCK="${2:-com.google.android.tvlauncher}"
+LIST="${1:?usage: restore.sh <debloat list> [stock launcher package, default: Google TV launcherx]}"
+STOCK="${2:-com.google.android.apps.tv.launcherx}"
 PY=tools/venv/bin/python
 {
   grep -vE '^\s*(#|$)' "$LIST" | sed -E 's/\s+#.*$//' | awk '{print "pm enable " $1}'

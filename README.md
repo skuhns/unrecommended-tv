@@ -51,11 +51,24 @@ A small native Android TV home screen (`com.gathin.tvhome`), built for sets with
 - Deterministic D-pad navigation, last focused tile remembered, staggered entrance animation.
   No blur, no video, no network, no background services.
 
+### Hisense branch additions
+
+- **Top bar**: Search, Picture and a now-playing banner (art, title, play/pause, next). With nothing
+  playing it shows Spotify, and Play resumes Spotify's last track in the background without opening it.
+  Needs notification access (granted by `build-and-install.sh`).
+- **Picture panel**: three looks (Movie night, Daytime, Sports & TV), brightness ±5 and every picture
+  mode. Hisense keeps these in a vendor service apps can't reach, so an accessibility service
+  ("Home picture control") operates the TV's own picture menu with D-pad presses. Enabled by
+  `build-and-install.sh`; force-stopping the app turns it off (re-run the script).
+- **Search**: installed apps plus movies and shows from TMDB, with "Watch on" buttons for the apps on
+  this TV that carry the title. Put a TMDB read token in `launcher/local.properties` as
+  `tmdb.token=...` (git-ignored).
+
 Configure it in [`launcher/app/src/main/res/values/config.xml`](launcher/app/src/main/res/values/config.xml):
 dock order, hidden apps, Live TV package and columns. Build and install with
 
 ```bash
-TV_HOST=192.168.1.50 launcher/build-and-install.sh
+TV_SERIAL=192.168.1.50:5555 launcher/build-and-install.sh   # serial from `adb devices`
 ```
 
 Needs JDK 17 and the Android SDK (platform 34, build-tools 34.0.0). On macOS:
@@ -83,6 +96,7 @@ tools/restore.sh examples/xiaomi-mi-tv-4a/debloat.txt        # undo it, restore 
 - **Chained `pm` commands** (`pm disable a; pm disable b`) may silently stop after the first. Run
   one per shell call; `--batch` does this.
 - **Large pushes hang** through the Python client. Use `tools/b64push.py` for APKs.
+- **Google TV ignores `set-home-activity`**: its launcher (`launcherx`) declares a higher HOME priority, so it must be disabled (with `com.google.android.tungsten.setupwraith`, which re-enables it). See `examples/hisense-wutaishan/`.
 - **Disable the stock launcher only after the new one is installed**, or the Home button lands on
   a factory test app.
 - **Third-party launchers** often charge for basics like a custom wallpaper. Hence `launcher/`.
