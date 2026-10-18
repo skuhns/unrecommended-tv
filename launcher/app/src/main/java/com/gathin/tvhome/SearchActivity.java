@@ -36,7 +36,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Search: installed apps by name, plus movies and shows from TMDB. Picking a title shows which of
+ * Search: installed apps by name, programs in the antenna guide (live_channels only), plus movies
+ * and shows from TMDB. Picking a title shows which of
  * your apps carry it; picking an app opens it (on its search page where the app supports a link).
  */
 public class SearchActivity extends Activity {
@@ -52,11 +53,12 @@ public class SearchActivity extends Activity {
     private int generation;
 
     private EditText query;
-    private TextView message, appsLabel, titlesLabel, detailTitle, detailOverview;
+    private TextView message, appsLabel, liveLabel, titlesLabel, detailTitle, detailOverview;
     private View detail;
     private LinearLayout offers;
-    private RecyclerView apps, titles;
-    private TileAdapter appsAdapter;
+    private RecyclerView apps, live, titles;
+    private TileAdapter appsAdapter, liveAdapter;
+    private TvChannels channels;
     private PosterAdapter postersAdapter;
     private final List<TileAdapter.Tile> allApps = new ArrayList<>();
     private final List<String> allAppLabels = new ArrayList<>();
@@ -84,6 +86,14 @@ public class SearchActivity extends Activity {
         apps.setItemAnimator(null);
         appsAdapter = new TileAdapter((int) (136 * d), (int) (76 * d), true);
         apps.setAdapter(appsAdapter);
+
+        liveLabel = findViewById(R.id.liveLabel);
+        live = findViewById(R.id.live);
+        live.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        live.setItemAnimator(null);
+        liveAdapter = new TileAdapter((int) (136 * d), (int) (76 * d), true);
+        live.setAdapter(liveAdapter);
+        channels = new TvChannels(this, getResources().getStringArray(R.array.live_channels));
 
         titles = findViewById(R.id.titles);
         titles.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
@@ -119,7 +129,7 @@ public class SearchActivity extends Activity {
         // The box is wide, so Down would land on whichever result sits under its middle; start at the first.
         query.setOnKeyListener((v, keyCode, event) -> {
             if (keyCode != KeyEvent.KEYCODE_DPAD_DOWN || event.getAction() != KeyEvent.ACTION_DOWN) return false;
-            RecyclerView first = appsAdapter.getItemCount() > 0 ? apps : titles;
+            RecyclerView first = appsAdapter.getItemCount() > 0 ? apps : liveAdapter.getItemCount() > 0 ? live : titles;
             View tile = first.getChildCount() > 0 ? first.getChildAt(0).findViewById(R.id.card) : null;
             if (tile == null) return false;
             tile.requestFocus();
@@ -169,6 +179,8 @@ public class SearchActivity extends Activity {
         appsAdapter.setTiles(apps);
         appsLabel.setVisibility(apps.isEmpty() ? View.GONE : View.VISIBLE);
 
+        searchLive(q, gen);
+
         if (q.length() < 2 || !tmdb.configured()) {
             postersAdapter.set(new ArrayList<>());
             titlesLabel.setVisibility(View.GONE);
@@ -191,6 +203,34 @@ public class SearchActivity extends Activity {
                 titlesLabel.setVisibility(result.isEmpty() ? View.GONE : View.VISIBLE);
                 if (error != null) showMessage("Search failed: " + error);
                 else message.setVisibility(View.GONE);
+            });
+        });
+    }
+
+    /** Programs on the antenna channels, on now or coming up, whose title matches. */
+    private void searchLive(String q, int gen) {
+        if (q.length() < 2 || getResources().getStringArray(R.array.live_channels).length == 0) {
+            liveAdapter.setTiles(new ArrayList<>());
+            liveLabel.setVisibility(View.GONE);
+            return;
+        }
+        io.execute(() -> {
+            List<TvChannels.Program> found = channels.search(q);
+            long now = System.currentTimeMillis();
+            java.text.DateFormat time = android.text.format.DateFormat.getTimeFormat(this);
+            List<TileAdapter.Tile> tiles = new ArrayList<>();
+            for (TvChannels.Program p : found) {
+                String when = p.start <= now ? "Now"
+                        : android.text.format.DateUtils.isToday(p.start) ? time.format(new java.util.Date(p.start))
+                        : new java.text.SimpleDateFormat("EEE", Locale.getDefault()).format(new java.util.Date(p.start))
+                                + " " + time.format(new java.util.Date(p.start));
+                tiles.add(new TileAdapter.Tile(p.channel.label + " · " + when + "\n" + p.title, null, null,
+                        () -> channels.tune(p.channel.id), null));
+            }
+            handler.post(() -> {
+                if (gen != generation) return;
+                liveAdapter.setTiles(tiles);
+                liveLabel.setVisibility(tiles.isEmpty() ? View.GONE : View.VISIBLE);
             });
         });
     }

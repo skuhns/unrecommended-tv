@@ -73,6 +73,16 @@ final class PicturePanel {
         status.setText(look.name + "…");
         host.beforeMenu();
         if (!openMenu()) return;
+        run(ctx, s, look, retune, r -> {
+            render(r);
+            host.afterLook(r.error == null ? look.name + " · " + r.mode : "Couldn't finish: " + r.error);
+        });
+    }
+
+    /** Apply {@code look} with the TV's picture menu already opening, and remember the result. */
+    static void run(Context ctx, PictureService s, PictureConfig.Look look, boolean retune, PictureService.Done done) {
+        PictureConfig cfg = PictureConfig.get(ctx);
+        SharedPreferences prefs = ctx.getSharedPreferences("picture", Context.MODE_PRIVATE);
         s.applyLook(look.modes, mode -> cfg.recipeFor(prefs, mode, retune), r -> {
             SharedPreferences.Editor e = prefs.edit();
             if (r.error == null) {
@@ -81,9 +91,34 @@ final class PicturePanel {
             }
             if (r.mode != null) e.putString("mode", r.mode);
             e.apply();
-            render(r);
-            host.afterLook(r.error == null ? look.name + " · " + r.mode : "Couldn't finish: " + r.error);
+            done.done(r);
         });
+    }
+
+    /**
+     * Apply the look named {@code name} a little later, once what was just started is playing (the
+     * mode list depends on the signal). Used when the launcher tunes a channel; off if name is empty.
+     */
+    static void applySoon(Context ctx, String name, long delayMs) {
+        if (name.isEmpty()) return;
+        PictureConfig cfg = PictureConfig.get(ctx);
+        PictureConfig.Look found = null;
+        for (PictureConfig.Look l : cfg.looks) if (l.name.equalsIgnoreCase(name)) found = l;
+        PictureConfig.Look look = found;
+        if (look == null || !cfg.enabled()) return;
+        Context app = ctx.getApplicationContext();
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            PictureService s = PictureService.get();
+            if (s == null || s.isBusy()) return;
+            try {
+                app.startActivity(new Intent(cfg.openAction).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } catch (ActivityNotFoundException e) {
+                return;
+            }
+            run(app, s, look, false, r -> {
+                if (r.error != null) android.util.Log.w("PicturePanel", "auto look failed: " + r.error);
+            });
+        }, delayMs);
     }
 
     /** The service walks the menu to the Brightness slider and leaves it open; without it, open the menu. */

@@ -73,6 +73,16 @@
         style="@style/TileRow" />
 
     <TextView
+        android:id="@+id/liveLabel"
+        style="@style/SectionLabel"
+        android:text="@string/live_tv"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/live"
+        style="@style/TileRow" />
+
+    <TextView
         android:id="@+id/titlesLabel"
         style="@style/SectionLabel"
         android:text="@string/movies_shows"

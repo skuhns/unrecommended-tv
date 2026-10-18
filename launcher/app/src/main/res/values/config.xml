@@ -53,4 +53,11 @@
          these with an antenna; find yours at rabbitears.info or your TV's channel list. -->
     <string-array name="local_stations">
     </string-array>
+    <!-- Antenna channels for the "On now" row and search, "channel|label" (e.g. 5.1|NBC 5). Only these
+         show in the launcher; the TV's Live TV app still has every scanned channel. Empty = no row. -->
+    <string-array name="live_channels">
+    </string-array>
+    <!-- Picture look (a name from picture.json) to switch to when the launcher tunes a channel.
+         Empty = leave the picture alone. -->
+    <string name="live_tv_look" translatable="false"></string>
 </resources>

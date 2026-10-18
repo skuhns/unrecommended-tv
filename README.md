@@ -33,6 +33,8 @@ Everything is reversible.
   the TV's Brightness and Picture Mode menus. A spare remote button opens them over anything you're watching.
 - **Game day.** On game days your team's game appears above the apps; one press tunes the right
   antenna channel or opens the streaming app that has it. Spoiler-free by default.
+- **Live TV.** With an antenna, an "On now" row shows what's on your chosen channels, search finds
+  guide listings, and tuning one can switch the picture to a look you pick.
 - **Your layout.** Hold OK on any app to move it, or send it to Favourites, More or All apps.
 - **No ads, no recommendations, no tracking.** The TV's own ad and promo apps are switched off.
 

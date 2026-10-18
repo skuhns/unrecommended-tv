@@ -2,10 +2,6 @@ package com.gathin.tvhome;
 
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.media.tv.TvContract;
-import android.media.tv.TvInputInfo;
-import android.media.tv.TvInputManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.format.DateFormat;
@@ -71,7 +67,6 @@ final class GameDay {
             {"netflix", "com.netflix.ninja", "Netflix"},
     };
 
-    private static final String LIVE_TV = "com.vt.tv.tvcenter";
     private static final String SCHEDULE = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/%s/schedule";
     private static final long REFRESH_GAME_MS = 2 * 60_000L;    // statuses change during a game
     private static final long REFRESH_IDLE_MS = 60 * 60_000L;
@@ -89,6 +84,7 @@ final class GameDay {
     }
 
     private final Context ctx;
+    private final TvChannels channels;
     private final String team, teamName;
     private final boolean liveScore;
     private final Listener listener;
@@ -116,6 +112,7 @@ final class GameDay {
             if (p.length == 3) stations.add(new Station(p[0].trim().toLowerCase(Locale.US), p[1].trim(), p[2].trim()));
         }
         this.ctx = ctx.getApplicationContext();
+        this.channels = new TvChannels(ctx, new String[0]);
         this.team = team;
         this.teamName = teamName;
         this.liveScore = liveScore;
@@ -251,51 +248,11 @@ final class GameDay {
         return new Watch(name, null);
     }
 
-    /**
-     * Tune the antenna to {@code s}. Channels come from the TV's own scan. Without that channel (no
-     * scan yet), switch Live TV to the antenna input: with no channels it offers "Auto Channel Scan".
-     */
+    /** Tune the antenna to {@code s}; without that channel (no scan yet), open the antenna input to scan. */
     private void tune(Station s) {
-        long id = findChannel(s.number);
-        if (id >= 0) {
-            start(new Intent(Intent.ACTION_VIEW, TvContract.buildChannelUri(id)));
-            return;
-        }
-        String antenna = antennaInput();
-        if (antenna != null) {
-            start(new Intent(Intent.ACTION_VIEW)
-                    .setDataAndType(TvContract.buildChannelsUriForInput(antenna), "vnd.android.cursor.dir/channel")
-                    .setPackage(LIVE_TV));
-            return;
-        }
-        Intent live = ctx.getPackageManager().getLeanbackLaunchIntentForPackage(LIVE_TV);
-        if (live != null) start(live);
-    }
-
-    private long findChannel(String number) {
-        try (Cursor c = ctx.getContentResolver().query(TvContract.Channels.CONTENT_URI,
-                new String[]{TvContract.Channels._ID, TvContract.Channels.COLUMN_DISPLAY_NUMBER},
-                null, null, null)) {
-            if (c == null) return -1;
-            String want = number.replace('-', '.');
-            while (c.moveToNext()) {
-                String n = c.getString(1);
-                if (n != null && n.replace('-', '.').trim().equals(want)) return c.getLong(0);
-            }
-        } catch (SecurityException e) {
-            android.util.Log.w("GameDay", "no permission to read channels", e);
-        }
-        return -1;
-    }
-
-    /** The TV tuner (antenna/cable) input's id. */
-    private String antennaInput() {
-        TvInputManager tim = (TvInputManager) ctx.getSystemService(Context.TV_INPUT_SERVICE);
-        if (tim == null) return null;
-        for (TvInputInfo info : tim.getTvInputList()) {
-            if (info.getType() == TvInputInfo.TYPE_TUNER) return info.getId();
-        }
-        return null;
+        long id = channels.find(s.number);
+        if (id >= 0) channels.tune(id);
+        else channels.openAntenna();
     }
 
     private void openApp(String pkg) {

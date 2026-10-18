@@ -66,6 +66,21 @@ The TMDB key goes in `launcher/local.properties` as `tmdb.token=…` (never comm
 A press on the game label tunes the antenna channel for CBS/FOX/NBC/ABC games, opens Prime Video,
 Peacock or Netflix for games streaming there, or (no antenna channels yet) opens the TV's channel scan.
 
+## Live TV (antenna)
+
+| Setting | What it does |
+|---|---|
+| `live_channels` | Antenna channels shown in the launcher, as `channel\|label`, e.g. `5.1\|NBC 5`. They get an "On now" row below the fold (with the current program from the TV's guide), and their programs show up in search. Empty = no row. |
+| `live_tv_look` | A picture look from `picture.json` (e.g. `Sports & TV`, written `Sports &amp; TV` in XML) to switch to a few seconds after the launcher tunes a channel. The TV's picture menu flashes up briefly while it does. Empty = leave the picture alone. |
+
+Scan for channels first (TV's Live TV app → Settings → Channels → Auto Scan). Where a station also
+broadcasts NextGen TV (ATSC 3.0, names ending "-NG"), that version is tuned: it usually comes in
+better and carries the program guide.
+
+Only these channels appear in the launcher. The TV's own Live TV app still lists every scanned
+channel: Google TV doesn't let other apps hide channels. To trim its list, use Live TV's Favorites
+(press OK for the channel list, then the `*` button on a channel) and switch the list to Favorites.
+
 ## Picture looks
 
 Not in this file: picture looks live in your profile's `picture.json`. See [PICTURE.md](PICTURE.md).

@@ -3,6 +3,8 @@
     <string name="app_name">Home</string>
     <string name="more">More</string>
     <string name="inputs">Inputs</string>
+    <string name="on_now">On now</string>
+    <string name="live_tv">Live TV</string>
     <string name="all_apps">All apps</string>
     <string name="hide_apps">Hide apps</string>
     <string name="good_morning">Good morning</string>

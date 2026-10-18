@@ -46,8 +46,9 @@ public class MainActivity extends Activity {
     private static final float TILE_REST_ALPHA = 0.45f;
 
     private ScrollView scroll;
-    private RecyclerView front, tier, inputs, allApps;
-    private TileAdapter frontAdapter, tierAdapter, inputsAdapter, allAdapter;
+    private RecyclerView front, tier, onNow, inputs, allApps;
+    private TileAdapter frontAdapter, tierAdapter, onNowAdapter, inputsAdapter, allAdapter;
+    private TvChannels channels;
     private TextView btnAllApps;
     private TextView greeting;
     private NowPlayingBar nowPlaying;
@@ -81,6 +82,7 @@ public class MainActivity extends Activity {
         @Override
         public void run() {
             updateGreeting();
+            reloadOnNow();
             if (!getString(R.string.weather_lat).isEmpty()) weather.refresh();
             handler.postDelayed(this, MINUTE_MS);
         }
@@ -97,6 +99,7 @@ public class MainActivity extends Activity {
         greeting = findViewById(R.id.greeting);
         front = findViewById(R.id.front);
         tier = findViewById(R.id.tier);
+        onNow = findViewById(R.id.onNow);
         inputs = findViewById(R.id.inputs);
         allApps = findViewById(R.id.allApps);
         btnAllApps = findViewById(R.id.btnAllApps);
@@ -111,6 +114,9 @@ public class MainActivity extends Activity {
         setUpGrid(front, frontAdapter, AppLayout.FRONT_MAX);
         tierAdapter = new TileAdapter(tileW, tileH, true);
         setUpRow(tier, tierAdapter);
+        onNowAdapter = new TileAdapter(tileW, tileH, true);
+        setUpRow(onNow, onNowAdapter);
+        channels = new TvChannels(this, getResources().getStringArray(R.array.live_channels));
         inputsAdapter = new TileAdapter(tileW, tileH, true);
         setUpRow(inputs, inputsAdapter);
         allAdapter = new TileAdapter(tileW, tileH, false);
@@ -190,6 +196,7 @@ public class MainActivity extends Activity {
         super.onResume();
         reloadApps();
         reloadInputs();
+        reloadOnNow();
         updateGreeting();
         if (!getString(R.string.weather_lat).isEmpty()) weather.refresh();
         handler.postDelayed(minuteTick, MINUTE_MS);
@@ -471,6 +478,32 @@ public class MainActivity extends Activity {
             }
         }
         inputsAdapter.setTiles(tiles);
+    }
+
+    // ---- live TV ---------------------------------------------------------------------------------
+
+    /** "On now": the configured antenna channels and what's on each, from the TV's program guide. */
+    private void reloadOnNow() {
+        if (getResources().getStringArray(R.array.live_channels).length == 0) {
+            showOnNow(new ArrayList<>());
+            return;
+        }
+        new Thread(() -> {
+            List<TvChannels.Program> now = channels.onNow();
+            runOnUiThread(() -> showOnNow(now));
+        }).start();
+    }
+
+    private void showOnNow(List<TvChannels.Program> now) {
+        List<TileAdapter.Tile> tiles = new ArrayList<>();
+        for (TvChannels.Program p : now) {
+            String label = p.title == null ? p.channel.label : p.channel.label + "\n" + p.title;
+            tiles.add(new TileAdapter.Tile(label, null, null, () -> channels.tune(p.channel.id), null));
+        }
+        onNowAdapter.setTiles(tiles);
+        int v = tiles.isEmpty() ? View.GONE : View.VISIBLE;
+        onNow.setVisibility(v);
+        findViewById(R.id.onNowLabel).setVisibility(v);
     }
 
     // ---- misc ------------------------------------------------------------------------------------

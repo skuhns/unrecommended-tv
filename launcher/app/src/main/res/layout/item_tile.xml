@@ -44,7 +44,7 @@
             android:paddingEnd="8dp"
             android:paddingBottom="6dp"
             android:gravity="center"
-            android:singleLine="true"
+            android:maxLines="2"
             android:ellipsize="end"
             android:textColor="#FFFFFFFF"
             android:textSize="12sp"

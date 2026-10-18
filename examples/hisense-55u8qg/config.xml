@@ -56,4 +56,15 @@
         <item>nbc|5.1|NBC 5</item>
         <item>abc|7.1|ABC 7</item>
     </string-array>
+    <!-- Antenna channels in the launcher ("On now" row, search). NextGen (-NG) versions are preferred
+         automatically: classic CBS 2 and FOX 32 are too weak here. -->
+    <string-array name="live_channels">
+        <item>2.1|CBS 2</item>
+        <item>5.1|NBC 5</item>
+        <item>7.1|ABC 7</item>
+        <item>9.1|WGN 9</item>
+        <item>32.1|FOX 32</item>
+        <item>38.1|ION</item>
+    </string-array>
+    <string name="live_tv_look" translatable="false">Sports &amp; TV</string>
 </resources>

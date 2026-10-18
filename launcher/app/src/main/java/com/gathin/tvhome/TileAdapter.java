@@ -163,6 +163,9 @@ public class TileAdapter extends RecyclerView.Adapter<TileAdapter.Holder> {
             h.icon.setVisibility(t.icon != null ? View.VISIBLE : View.GONE);
             h.label.setText(t.label);
             h.label.setVisibility(View.VISIBLE);
+            // Without an icon, the text (e.g. channel and program) sits in the middle of the card.
+            ((android.widget.FrameLayout.LayoutParams) h.label.getLayoutParams()).gravity =
+                    t.icon != null ? android.view.Gravity.BOTTOM : android.view.Gravity.CENTER;
         }
         h.card.setForeground(position == movingPos ? h.card.getContext().getDrawable(R.drawable.tile_moving)
                 : focusRing ? h.card.getContext().getDrawable(R.drawable.tile_focus) : null);

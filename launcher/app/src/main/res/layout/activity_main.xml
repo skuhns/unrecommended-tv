@@ -297,6 +297,15 @@
             android:id="@+id/tier"
             style="@style/TileRow" />
 
+        <TextView
+            android:id="@+id/onNowLabel"
+            style="@style/SectionLabel"
+            android:text="@string/on_now" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/onNow"
+            style="@style/TileRow" />
+
         <TextView style="@style/SectionLabel" android:text="@string/inputs" />
 
         <androidx.recyclerview.widget.RecyclerView

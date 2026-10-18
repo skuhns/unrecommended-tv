@@ -6,7 +6,7 @@ the same picture menu, so `picture.json` is a good starting point; check the mod
 
 | File | |
 |---|---|
-| [`config.xml`](config.xml) | Apps, Chicago weather, Bears game day, Chicago antenna channels (FOX 32, CBS 2, NBC 5, ABC 7). |
+| [`config.xml`](config.xml) | Apps, Chicago weather, Bears game day, Chicago antenna channels (FOX 32, CBS 2, NBC 5, ABC 7, WGN 9, ION) for game day and "On now", *Sports & TV* when tuning. |
 | [`picture.json`](picture.json) | Hisense picture-menu automation; Night / Day / Sports & TV for SDR, HDR10 and Dolby Vision. |
 | [`picture-research.md`](picture-research.md) | Best-settings research for this model (17 reviews, RTINGS, forums), with confidence ratings. |
 | [`debloat.txt`](debloat.txt) | What was switched off. |
@@ -64,6 +64,8 @@ can't be used: its launch lives in MediaTek's core TV agent, which also runs the
 - Max sends SDR on non-top plans; Apple TV+ was the reliable Dolby Vision test.
 - Channels can only be scanned from the antenna source; the game label opens it ("Scan").
 
-**To do:** antenna scan, then confirm the game label tunes FOX 32 directly.
+- Scan found ~120 channels, plus NextGen (-NG) duplicates. Classic CBS 2.1, FOX 32.1 and WGN 9.1 were
+  "Weak or no signal" indoors; their -NG versions play and carry the guide. ABC 7 and ION have no -NG.
+- Live TV has no channel editor (no skip/hide), and apps can't hide channels; only Favorites.
 
 **Undo:** `tools/restore.sh examples/hisense-55u8qg/debloat.txt`.
