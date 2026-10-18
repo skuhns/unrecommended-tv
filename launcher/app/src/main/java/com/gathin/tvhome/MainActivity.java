@@ -57,8 +57,8 @@ public class MainActivity extends Activity {
     private GameDay gameDay;
     private Weather weather;
     /**
-     * On a fresh start the window gives focus to the first focusable view (the Search button) once it
-     * gains focus, after onResume; start on the first favourite instead.
+     * When the window gains focus (fresh start, or Home pressed while home) it gives focus to the first
+     * focusable view, the Search button; start on the first favourite instead.
      */
     private boolean focusFavouritesOnWindowFocus = true;
 
@@ -81,7 +81,7 @@ public class MainActivity extends Activity {
         @Override
         public void run() {
             updateGreeting();
-            weather.refresh();
+            if (!getString(R.string.weather_lat).isEmpty()) weather.refresh();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -124,7 +124,9 @@ public class MainActivity extends Activity {
 
         btnAllApps.setOnClickListener(v -> setAllAppsShown(allApps.getVisibility() != View.VISIBLE));
         findViewById(R.id.btnSearch).setOnClickListener(v -> open(new Intent(this, SearchActivity.class)));
-        findViewById(R.id.btnPicture).setOnClickListener(v -> open(new Intent(this, PicturePanelActivity.class)));
+        View btnPicture = findViewById(R.id.btnPicture);
+        btnPicture.setOnClickListener(v -> open(new Intent(this, PicturePanelActivity.class)));
+        btnPicture.setVisibility(PictureConfig.get(this).enabled() ? View.VISIBLE : View.GONE);
         nowPlaying = new NowPlayingBar(this);
 
         // Background: a rotating painting.
@@ -132,11 +134,13 @@ public class MainActivity extends Activity {
         TextView weatherText = findViewById(R.id.weather);
         weather = new Weather(getString(R.string.weather_lat), getString(R.string.weather_lon),
                 getResources().getBoolean(R.bool.weather_fahrenheit), weatherText::setText);
+        weatherText.setVisibility(getString(R.string.weather_lat).isEmpty() ? View.GONE : View.VISIBLE);
 
         View gameLabel = findViewById(R.id.gameLabel);
         TextView gameTitle = findViewById(R.id.gameTitle), gameDetail = findViewById(R.id.gameDetail);
         gameDay = new GameDay(this, getString(R.string.team), getString(R.string.team_name),
-                getResources().getBoolean(R.bool.show_live_score), game -> {
+                getResources().getBoolean(R.bool.show_live_score),
+                getResources().getStringArray(R.array.local_stations), game -> {
             gameLabel.setVisibility(game == null ? View.GONE : View.VISIBLE);
             if (game == null) return;
             gameTitle.setText(game.title);
@@ -187,11 +191,11 @@ public class MainActivity extends Activity {
         reloadApps();
         reloadInputs();
         updateGreeting();
-        weather.refresh();
+        if (!getString(R.string.weather_lat).isEmpty()) weather.refresh();
         handler.postDelayed(minuteTick, MINUTE_MS);
         nowPlaying.start();
         art.start();
-        gameDay.start();
+        if (!getString(R.string.team).isEmpty()) gameDay.start();
         // The window may hand initial focus to the scroll view itself; move it onto a tile.
         front.post(() -> {
             View f = getCurrentFocus();
@@ -222,7 +226,11 @@ public class MainActivity extends Activity {
         }
         setAllAppsShown(false);
         scroll.smoothScrollTo(0, 0);
-        focusFirst(front);
+        // onNewIntent runs while paused, where a focus change doesn't stick; do it once resumed.
+        front.postDelayed(() -> focusFirst(front), 150);
+        // If the window is (re)gaining focus it may put focus back on the Search button afterwards.
+        focusFavouritesOnWindowFocus = true;
+        front.postDelayed(() -> focusFavouritesOnWindowFocus = false, 1000);
     }
 
     @Override

@@ -29,8 +29,8 @@ import java.util.concurrent.Executors;
 
 /**
  * The team's next game, from ESPN's public schedule feed, shown on game day only, and how to watch
- * it: the local antenna channel for network games (CBS 2, NBC 5, ABC 7, FOX 32 in Chicago), else the
- * streaming app that has it. Spoiler-free unless show_live_score is set.
+ * it: the local antenna channel for network games (local_stations in config.xml), else the streaming
+ * app that has it. Spoiler-free unless show_live_score is set.
  */
 final class GameDay {
 
@@ -61,13 +61,8 @@ final class GameDay {
         }
     }
 
-    /** Chicago over-the-air network affiliates (virtual channel numbers). */
-    private static final Station[] STATIONS = {
-            new Station("fox", "32.1", "FOX 32"),
-            new Station("cbs", "2.1", "CBS 2"),
-            new Station("nbc", "5.1", "NBC 5"),
-            new Station("abc", "7.1", "ABC 7"),
-    };
+    /** Local over-the-air network affiliates, from config.xml ("network|channel|label"). */
+    private final List<Station> stations = new ArrayList<>();
 
     /** Streaming-only broadcasts we can open. */
     private static final String[][] STREAMERS = {
@@ -115,7 +110,11 @@ final class GameDay {
         }
     };
 
-    GameDay(Context ctx, String team, String teamName, boolean liveScore, Listener listener) {
+    GameDay(Context ctx, String team, String teamName, boolean liveScore, String[] localStations, Listener listener) {
+        for (String line : localStations) {
+            String[] p = line.split("\\|");
+            if (p.length == 3) stations.add(new Station(p[0].trim().toLowerCase(Locale.US), p[1].trim(), p[2].trim()));
+        }
         this.ctx = ctx.getApplicationContext();
         this.team = team;
         this.teamName = teamName;
@@ -238,7 +237,7 @@ final class GameDay {
 
     /** Antenna first (no lag, no login), then a streaming app we have; ESPN alone isn't watchable here. */
     private Watch howToWatch(Event e) {
-        for (Station s : STATIONS) {
+        for (Station s : stations) {
             for (String n : e.networks) {
                 if (n.toLowerCase(Locale.US).startsWith(s.network)) return new Watch(s.label, () -> tune(s));
             }

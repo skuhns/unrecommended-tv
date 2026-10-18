@@ -27,23 +27,15 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Hisense keeps picture mode and backlight in a vendor service no app can call, and its settings
- * provider is not exported. What does work: open its picture menu (android.settings.DISPLAY_SETTINGS),
- * read the rows through accessibility, and press D-pad keys with the Android 13+ DPAD global actions.
- * The caller opens the menu; this service drives it (and closes it again after a mode change).
+ * TVs keep picture mode and backlight in vendor services no app can call. What does work: open the
+ * TV's own picture menu, read its rows through accessibility, and press D-pad keys with the Android
+ * 13+ DPAD global actions. Which menu, rows and on-screen ids come from the TV profile (PictureConfig,
+ * picture.json). The caller opens the menu; this service drives it (and closes it after a mode change).
  */
 public class PictureService extends AccessibilityService {
 
-    static final String PKG = "com.vt.customsettings";
-    /** Value rows use the platform title id; rows that open a submenu use Hisense's own. */
-    private static final String ID_TITLE = "android:id/title";
-    private static final String ID_TITLE_HISENSE = PKG + ":id/title";
-    private static final String ID_INDICATOR = PKG + ":id/indicator";
-    private static final String ID_DECOR_TITLE = PKG + ":id/decor_title";
-    private static final String ID_SUMMARY = "android:id/summary";
-    private static final String MENU_TITLE = "Display & Picture";
-    private static final String ROW_MODE = "Picture Mode";
-    private static final String ROW_BRIGHTNESS = "Brightness";
+    /** The TV's picture menu, picture modes and panel button (from the TV profile). */
+    private PictureConfig cfg;
 
     /** Poll the menu this often while waiting for it to react to a key. */
     private static final long POLL_MS = 60L;
@@ -104,32 +96,34 @@ public class PictureService extends AccessibilityService {
     }
 
     /**
-     * The remote's TV/Guide button (keycode 172) opens the Picture panel over any app. On this TV
-     * remote keys never reach accessibility services (the system handles them first), but Hisense
-     * broadcasts every press, once per key-down, with its keycode. Guide does nothing here otherwise.
-     * (The Netflix button can't be used: its launch lives in MediaTek's core TV agent.)
+     * A remote button opens the Picture panel over any app. Remote keys never reach accessibility
+     * services on such TVs (the system handles them first), so this listens for the vendor's
+     * key-press broadcast instead (Hisense: com.hisense.INTERCEPT_BUTTON_OPERATING, one per key-down,
+     * with the keycode). Pick a button that does nothing else (Hisense: the TV/Guide button, 172).
      */
-    static final int PANEL_KEY = 172;
-    private static final String HISENSE_KEY_ACTION = "com.hisense.INTERCEPT_BUTTON_OPERATING";
-
     private final BroadcastReceiver keys = new BroadcastReceiver() {
         @Override
         public void onReceive(Context c, Intent i) {
-            if (i.getIntExtra("keycode", -1) == PANEL_KEY) toggleOverlay();
+            if (i.getIntExtra(cfg.panelExtra, -1) == cfg.panelKeycode) toggleOverlay();
         }
     };
 
     @Override
     protected void onServiceConnected() {
         instance = this;
-        IntentFilter f = new IntentFilter(HISENSE_KEY_ACTION);
-        if (Build.VERSION.SDK_INT >= 33) registerReceiver(keys, f, Context.RECEIVER_EXPORTED);
-        else registerReceiver(keys, f);
+        cfg = PictureConfig.get(this);
+        if (cfg.enabled() && !cfg.panelBroadcast.isEmpty()) {
+            IntentFilter f = new IntentFilter(cfg.panelBroadcast);
+            if (Build.VERSION.SDK_INT >= 33) registerReceiver(keys, f, Context.RECEIVER_EXPORTED);
+            else registerReceiver(keys, f);
+            keysRegistered = true;
+        }
     }
 
     // ---- the panel as an overlay over whatever is playing ------------------------------------------
 
     private View overlay;
+    private boolean keysRegistered;
 
     private void toggleOverlay() {
         if (overlay != null) hideOverlay();
@@ -177,7 +171,8 @@ public class PictureService extends AccessibilityService {
     @Override
     public boolean onUnbind(android.content.Intent intent) {
         instance = null;
-        unregisterReceiver(keys);
+        if (keysRegistered) unregisterReceiver(keys);
+        keysRegistered = false;
         hideOverlay();
         return super.onUnbind(intent);
     }
@@ -202,7 +197,7 @@ public class PictureService extends AccessibilityService {
      */
     void applyLook(List<String> targets, Function<String, List<Setting>> recipeFor, Done cb) {
         Result r = new Result();
-        start(cb, r, () -> waitForRow(ROW_MODE, r, () -> chooseMode(targets, r, () -> {
+        start(cb, r, () -> waitForRow(cfg.modeRow, r, () -> chooseMode(targets, r, () -> {
             List<Setting> recipe = r.mode != null ? recipeFor.apply(r.mode) : null;
             if (recipe == null) {
                 finish(r);
@@ -216,13 +211,13 @@ public class PictureService extends AccessibilityService {
     /** Open the menu's Brightness page with the Brightness slider selected, and leave it open. */
     void openBrightness(Done cb) {
         Result r = new Result();
-        start(cb, r, () -> waitForRow(ROW_MODE, r, () -> moveTo(ROW_BRIGHTNESS, 0, r, () -> {
-            if (!pressOkOn(ROW_BRIGHTNESS)) {
+        start(cb, r, () -> waitForRow(cfg.modeRow, r, () -> moveTo(cfg.brightnessRow, 0, r, () -> {
+            if (!pressOkOn(cfg.brightnessRow)) {
                 fail(r, "lost track of the menu");
                 return;
             }
-            waitForDecor(ROW_BRIGHTNESS, SystemClock.uptimeMillis(), r,
-                    () -> moveTo(ROW_BRIGHTNESS, 0, r, () -> release(r)));
+            waitForDecor(cfg.brightnessRow, SystemClock.uptimeMillis(), r,
+                    () -> moveTo(cfg.brightnessRow, 0, r, () -> release(r)));
         })));
     }
 
@@ -270,7 +265,7 @@ public class PictureService extends AccessibilityService {
             @Override
             public void run() {
                 AccessibilityNodeInfo root = menuRoot();
-                if (root != null && MENU_TITLE.equals(textOf(root, ID_DECOR_TITLE))) {
+                if (root != null && cfg.menuTitle.equals(textOf(root, cfg.pageTitleId))) {
                     moveTo(row, 0, r, then);
                 } else if (SystemClock.uptimeMillis() - t0 > WAIT_MS) {
                     fail(r, "picture menu did not open");
@@ -284,7 +279,7 @@ public class PictureService extends AccessibilityService {
 
     private void waitForDecor(String decor, long t0, Result r, Runnable then) {
         AccessibilityNodeInfo root = menuRoot();
-        if (root != null && decor.equals(textOf(root, ID_DECOR_TITLE))) {
+        if (root != null && decor.equals(textOf(root, cfg.pageTitleId))) {
             then.run();
         } else if (SystemClock.uptimeMillis() - t0 > WAIT_MS) {
             fail(r, decor + " menu did not open");
@@ -313,7 +308,7 @@ public class PictureService extends AccessibilityService {
     }
 
     private String focusedTitle() {
-        return valueOf(focusedRow(), ID_TITLE);
+        return titleOf(focusedRow());
     }
 
     /**
@@ -362,7 +357,7 @@ public class PictureService extends AccessibilityService {
 
     private void leavePage(Result r, Runnable then) {
         global(GLOBAL_ACTION_BACK);
-        waitForDecor(MENU_TITLE, SystemClock.uptimeMillis(), r, then);
+        waitForDecor(cfg.menuTitle, SystemClock.uptimeMillis(), r, then);
     }
 
     private void applySetting(Setting s, Result r, Runnable next) {
@@ -436,9 +431,7 @@ public class PictureService extends AccessibilityService {
 
     /** The focused row's value: the inline chooser while focused, else its summary line. */
     private String currentValue() {
-        AccessibilityNodeInfo row = focusedRow();
-        String v = valueOf(row, ID_INDICATOR);
-        return v != null ? v : valueOf(row, ID_SUMMARY);
+        return valueText(focusedRow());
     }
 
     private static int parseInt(String s) {
@@ -450,22 +443,18 @@ public class PictureService extends AccessibilityService {
     }
 
     /**
-     * The order Right steps through Picture Mode on this TV (55U8QG), per signal type. FILMMAKER MODE
-     * is in both SDR and HDR, so landing on it leaves the lane unknown (slow path).
+     * The lane (signal type: SDR, HDR10, Dolby Vision…) whose mode list holds {@code mode}, in the order
+     * Right steps through them. A mode listed in more than one lane (e.g. FILMMAKER MODE) leaves the
+     * lane unknown (slow path).
      */
-    private static final List<String> SDR_MODES = java.util.Arrays.asList(
-            "Theater Night", "FILMMAKER MODE", "Vivid", "Standard", "Sports", "Energy Saving", "Theater Day");
-    private static final List<String> HDR_MODES = java.util.Arrays.asList(
-            "HDR Theater", "FILMMAKER MODE", "IMAX Mode", "HDR Vivid", "HDR Standard", "HDR Sports", "HDR Energy Saving");
-    private static final List<String> DV_MODES = java.util.Arrays.asList(
-            "Dolby Vision IQ", "Dolby Vision Dark", "Dolby Vision Custom", "Dolby Vision Game");
-
-    private static List<String> laneOf(String mode) {
-        if (same(mode, "FILMMAKER MODE")) return null;
-        for (List<String> lane : java.util.Arrays.asList(DV_MODES, HDR_MODES, SDR_MODES)) {
-            if (containsLoose(lane, mode)) return lane;
+    private List<String> laneOf(String mode) {
+        List<String> found = null;
+        for (List<String> lane : cfg.lanes) {
+            if (!containsLoose(lane, mode)) continue;
+            if (found != null) return null;
+            found = lane;
         }
-        return null;
+        return found;
     }
 
     private static int indexLoose(List<String> list, String s) {
@@ -478,7 +467,7 @@ public class PictureService extends AccessibilityService {
      * is away and check once. Unknown lane or a miss falls back to walking the list.
      */
     private void chooseMode(List<String> targets, Result r, Runnable then) {
-        String cur = valueOf(focusedRow(), ID_INDICATOR);
+        String cur = valueText(focusedRow());
         List<String> lane = cur != null ? laneOf(cur) : null;
         String target = null;
         if (lane != null) for (String t : targets) if (containsLoose(lane, t)) { target = t; break; }
@@ -489,7 +478,7 @@ public class PictureService extends AccessibilityService {
         int steps = (indexLoose(lane, target) - indexLoose(lane, cur) + lane.size()) % lane.size();
         String goal = target;
         press(GLOBAL_ACTION_DPAD_RIGHT, steps, MODE_KEY_MS, () -> {
-            String now = valueOf(focusedRow(), ID_INDICATOR);
+            String now = valueText(focusedRow());
             r.mode = now;
             if (same(now, goal)) then.run();
             else walkTo(goal, 0, r, then);
@@ -501,7 +490,7 @@ public class PictureService extends AccessibilityService {
      * at the start (or on the first choice). Then step to the best available target.
      */
     private void findMode(List<String> targets, String start, int steps, Result r, Runnable then) {
-        String cur = valueOf(focusedRow(), ID_INDICATOR);
+        String cur = valueText(focusedRow());
         if (cur == null) {
             fail(r, "could not read picture mode");
             return;
@@ -517,7 +506,7 @@ public class PictureService extends AccessibilityService {
         boolean wrapped = steps > 0 && same(cur, first);
         if (!wrapped && steps < MAX_MODES) {
             global(GLOBAL_ACTION_DPAD_RIGHT);
-            whenChanged(() -> valueOf(focusedRow(), ID_INDICATOR), cur, () -> findMode(targets, first, steps + 1, r, then));
+            whenChanged(() -> valueText(focusedRow()), cur, () -> findMode(targets, first, steps + 1, r, then));
             return;
         }
         if (!hasTargets) {
@@ -534,7 +523,7 @@ public class PictureService extends AccessibilityService {
     }
 
     private void walkTo(String target, int steps, Result r, Runnable then) {
-        String cur = valueOf(focusedRow(), ID_INDICATOR);
+        String cur = valueText(focusedRow());
         r.mode = cur;
         if (same(cur, target)) {
             then.run();
@@ -542,7 +531,7 @@ public class PictureService extends AccessibilityService {
             fail(r, "could not reach " + target);
         } else {
             global(GLOBAL_ACTION_DPAD_RIGHT);
-            whenChanged(() -> valueOf(focusedRow(), ID_INDICATOR), cur, () -> walkTo(target, steps + 1, r, then));
+            whenChanged(() -> valueText(focusedRow()), cur, () -> walkTo(target, steps + 1, r, then));
         }
     }
 
@@ -551,7 +540,7 @@ public class PictureService extends AccessibilityService {
      * row right before pressing it and refuse unless it is exactly the one we mean.
      */
     private boolean pressOkOn(String row) {
-        if (!row.equals(valueOf(focusedRow(), ID_TITLE))) return false;
+        if (!row.equals(titleOf(focusedRow()))) return false;
         global(GLOBAL_ACTION_DPAD_CENTER);
         return true;
     }
@@ -588,8 +577,8 @@ public class PictureService extends AccessibilityService {
         AccessibilityNodeInfo any = null;
         for (AccessibilityWindowInfo w : getWindows()) {
             AccessibilityNodeInfo root = w.getRoot();
-            if (root == null || !PKG.contentEquals(String.valueOf(root.getPackageName()))) continue;
-            if (textOf(root, ID_DECOR_TITLE) != null) return root;
+            if (root == null || !cfg.pkg.contentEquals(String.valueOf(root.getPackageName()))) continue;
+            if (textOf(root, cfg.pageTitleId) != null) return root;
             if (any == null) any = root;
         }
         return any;
@@ -614,10 +603,23 @@ public class PictureService extends AccessibilityService {
         return null;
     }
 
-    private static String valueOf(AccessibilityNodeInfo node, String viewId) {
+    /** A row's title (profiles list the ids rows use; submenu rows may use a vendor id). */
+    private String titleOf(AccessibilityNodeInfo node) {
+        return firstText(node, cfg.titleIds);
+    }
+
+    /** A row's value: the inline chooser while focused, else its summary line. */
+    private String valueText(AccessibilityNodeInfo node) {
+        return firstText(node, cfg.valueIds);
+    }
+
+    private static String firstText(AccessibilityNodeInfo node, List<String> ids) {
         if (node == null) return null;
-        String v = textOf(node, viewId);
-        return v == null && viewId.equals(ID_TITLE) ? textOf(node, ID_TITLE_HISENSE) : v;
+        for (String id : ids) {
+            String t = textOf(node, id);
+            if (t != null) return t;
+        }
+        return null;
     }
 
     private static String textOf(AccessibilityNodeInfo node, String viewId) {

@@ -29,7 +29,6 @@ final class Tmdb {
 
     static final String IMAGE_BASE = "https://image.tmdb.org/t/p/w185";
     private static final String API = "https://api.themoviedb.org/3";
-    private static final String REGION = "US";
 
     static final class Title {
         final String type, name, year, poster, overview;
@@ -113,10 +112,12 @@ final class Tmdb {
         }
     }
 
-    private final String token;
+    private final String token, region;
 
-    Tmdb(String token) {
+    /** {@code region}: where-to-watch country (ISO code, e.g. US, GB). */
+    Tmdb(String token, String region) {
         this.token = token;
+        this.region = region;
     }
 
     boolean configured() {
@@ -146,7 +147,7 @@ final class Tmdb {
     List<Offer> offers(Context ctx, Title t) throws IOException {
         JSONObject us = get("/" + t.type + "/" + t.id + "/watch/providers")
                 .optJSONObject("results");
-        us = us != null ? us.optJSONObject(REGION) : null;
+        us = us != null ? us.optJSONObject(region) : null;
         Set<App> stream = new LinkedHashSet<>(), buy = new LinkedHashSet<>();
         if (us != null) {
             for (String k : new String[]{"flatrate", "free", "ads"}) collect(us.optJSONArray(k), stream);

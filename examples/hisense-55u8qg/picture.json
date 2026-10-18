@@ -1,0 +1,832 @@
+{
+  "_about": "Hisense 55U8QG (Google TV, Android 14). How the launcher operates this TV's picture menu, and the picture looks. See README.md here and docs/PICTURE.md.",
+  "menu": {
+    "package": "com.vt.customsettings",
+    "open_action": "android.settings.DISPLAY_SETTINGS",
+    "title": "Display & Picture",
+    "mode_row": "Picture Mode",
+    "brightness_row": "Brightness",
+    "row_title_ids": [
+      "android:id/title",
+      "com.vt.customsettings:id/title"
+    ],
+    "row_value_ids": [
+      "com.vt.customsettings:id/indicator",
+      "android:id/summary"
+    ],
+    "page_title_id": "com.vt.customsettings:id/decor_title"
+  },
+  "mode_order": {
+    "sdr": [
+      "Theater Night",
+      "FILMMAKER MODE",
+      "Vivid",
+      "Standard",
+      "Sports",
+      "Energy Saving",
+      "Theater Day"
+    ],
+    "hdr": [
+      "HDR Theater",
+      "FILMMAKER MODE",
+      "IMAX Mode",
+      "HDR Vivid",
+      "HDR Standard",
+      "HDR Sports",
+      "HDR Energy Saving"
+    ],
+    "dolby_vision": [
+      "Dolby Vision IQ",
+      "Dolby Vision Dark",
+      "Dolby Vision Custom",
+      "Dolby Vision Game"
+    ]
+  },
+  "looks": [
+    {
+      "name": "Night",
+      "modes": [
+        "Dolby Vision Dark",
+        "HDR Theater",
+        "Theater Night",
+        "FILMMAKER MODE"
+      ]
+    },
+    {
+      "name": "Day",
+      "modes": [
+        "Dolby Vision IQ",
+        "HDR Standard",
+        "Theater Day",
+        "Standard"
+      ]
+    },
+    {
+      "name": "Sports & TV",
+      "modes": [
+        "Dolby Vision IQ",
+        "HDR Standard",
+        "Standard"
+      ]
+    }
+  ],
+  "recipe_version": 3,
+  "recipes": {
+    "Theater Night": [
+      {
+        "page": "Brightness",
+        "row": "Local Dimming",
+        "value": "Medium"
+      },
+      {
+        "page": "Brightness",
+        "row": "Peak Brightness",
+        "value": "Medium"
+      },
+      {
+        "page": "Brightness",
+        "row": "Brightness",
+        "value": 40
+      },
+      {
+        "page": "Brightness",
+        "row": "Contrast",
+        "value": 50
+      },
+      {
+        "page": "Brightness",
+        "row": "Black Level",
+        "value": 0
+      },
+      {
+        "page": "Brightness",
+        "row": "Dark Detail",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "Gamma",
+        "value": "BT1886"
+      },
+      {
+        "page": "Brightness",
+        "row": "AI Contrast",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "HDR Enhancer",
+        "value": "Off"
+      },
+      {
+        "page": "Color",
+        "row": "Color",
+        "value": 50
+      },
+      {
+        "page": "Color",
+        "row": "Color Temperature",
+        "value": "Warm1"
+      },
+      {
+        "page": "Color",
+        "row": "Color Space",
+        "value": "Auto"
+      },
+      {
+        "page": "Color",
+        "row": "Dynamic Color Enhancer",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Sharpness",
+        "value": 0
+      },
+      {
+        "page": "Clarity",
+        "row": "AI Super Resolution",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "MPEG Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Motion Enhancement",
+        "value": "Film"
+      },
+      {
+        "page": "Clarity",
+        "row": "Motion Clearness",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Precision Detail",
+        "value": "Off"
+      }
+    ],
+    "FILMMAKER MODE": [
+      {
+        "page": "Brightness",
+        "row": "Local Dimming",
+        "value": "Medium"
+      },
+      {
+        "page": "Brightness",
+        "row": "Peak Brightness",
+        "value": "Medium"
+      },
+      {
+        "page": "Brightness",
+        "row": "Brightness",
+        "value": 40
+      },
+      {
+        "page": "Brightness",
+        "row": "Contrast",
+        "value": 50
+      },
+      {
+        "page": "Brightness",
+        "row": "Black Level",
+        "value": 0
+      },
+      {
+        "page": "Brightness",
+        "row": "Dark Detail",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "Gamma",
+        "value": "BT1886"
+      },
+      {
+        "page": "Brightness",
+        "row": "AI Contrast",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "HDR Enhancer",
+        "value": "Off"
+      },
+      {
+        "page": "Color",
+        "row": "Color",
+        "value": 50
+      },
+      {
+        "page": "Color",
+        "row": "Color Temperature",
+        "value": "Warm1"
+      },
+      {
+        "page": "Color",
+        "row": "Color Space",
+        "value": "Auto"
+      },
+      {
+        "page": "Color",
+        "row": "Dynamic Color Enhancer",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Sharpness",
+        "value": 0
+      },
+      {
+        "page": "Clarity",
+        "row": "AI Super Resolution",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "MPEG Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Motion Enhancement",
+        "value": "Film"
+      },
+      {
+        "page": "Clarity",
+        "row": "Motion Clearness",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Precision Detail",
+        "value": "Off"
+      }
+    ],
+    "Theater Day": [
+      {
+        "page": "Brightness",
+        "row": "Local Dimming",
+        "value": "High"
+      },
+      {
+        "page": "Brightness",
+        "row": "Peak Brightness",
+        "value": "High"
+      },
+      {
+        "page": "Brightness",
+        "row": "Brightness",
+        "value": 85
+      },
+      {
+        "page": "Brightness",
+        "row": "Contrast",
+        "value": 50
+      },
+      {
+        "page": "Brightness",
+        "row": "Black Level",
+        "value": 0
+      },
+      {
+        "page": "Brightness",
+        "row": "Dark Detail",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "Gamma",
+        "value": "2.2"
+      },
+      {
+        "page": "Brightness",
+        "row": "AI Contrast",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "HDR Enhancer",
+        "value": "Off"
+      },
+      {
+        "page": "Color",
+        "row": "Color",
+        "value": 50
+      },
+      {
+        "page": "Color",
+        "row": "Color Temperature",
+        "value": "Warm1"
+      },
+      {
+        "page": "Color",
+        "row": "Color Space",
+        "value": "Auto"
+      },
+      {
+        "page": "Color",
+        "row": "Dynamic Color Enhancer",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Sharpness",
+        "value": 0
+      },
+      {
+        "page": "Clarity",
+        "row": "AI Super Resolution",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "MPEG Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Motion Enhancement",
+        "value": "Film"
+      },
+      {
+        "page": "Clarity",
+        "row": "Motion Clearness",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Precision Detail",
+        "value": "Off"
+      }
+    ],
+    "Standard": [
+      {
+        "page": "Brightness",
+        "row": "Local Dimming",
+        "value": "High"
+      },
+      {
+        "page": "Brightness",
+        "row": "Peak Brightness",
+        "value": "High"
+      },
+      {
+        "page": "Brightness",
+        "row": "Brightness",
+        "value": 90
+      },
+      {
+        "page": "Brightness",
+        "row": "Contrast",
+        "value": 50
+      },
+      {
+        "page": "Brightness",
+        "row": "Black Level",
+        "value": 0
+      },
+      {
+        "page": "Brightness",
+        "row": "Dark Detail",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "Gamma",
+        "value": "2.2"
+      },
+      {
+        "page": "Brightness",
+        "row": "AI Contrast",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "HDR Enhancer",
+        "value": "Off"
+      },
+      {
+        "page": "Color",
+        "row": "Color",
+        "value": 50
+      },
+      {
+        "page": "Color",
+        "row": "Color Temperature",
+        "value": "Warm1"
+      },
+      {
+        "page": "Color",
+        "row": "Color Space",
+        "value": "Auto"
+      },
+      {
+        "page": "Color",
+        "row": "Dynamic Color Enhancer",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Sharpness",
+        "value": 5
+      },
+      {
+        "page": "Clarity",
+        "row": "AI Super Resolution",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Noise Reduction",
+        "value": "Low"
+      },
+      {
+        "page": "Clarity",
+        "row": "MPEG Noise Reduction",
+        "value": "Low"
+      },
+      {
+        "page": "Clarity",
+        "row": "Motion Enhancement",
+        "value": "Custom"
+      },
+      {
+        "page": "Clarity",
+        "row": "Judder Reduction",
+        "value": 0
+      },
+      {
+        "page": "Clarity",
+        "row": "Blur Reduction",
+        "value": 6
+      },
+      {
+        "page": "Clarity",
+        "row": "Motion Clearness",
+        "value": "Off"
+      }
+    ],
+    "HDR Theater": [
+      {
+        "page": "Brightness",
+        "row": "Local Dimming",
+        "value": "High"
+      },
+      {
+        "page": "Brightness",
+        "row": "Peak Brightness",
+        "value": "High"
+      },
+      {
+        "page": "Brightness",
+        "row": "Brightness",
+        "value": 100
+      },
+      {
+        "page": "Brightness",
+        "row": "Contrast",
+        "value": 50
+      },
+      {
+        "page": "Brightness",
+        "row": "Black Level",
+        "value": 0
+      },
+      {
+        "page": "Brightness",
+        "row": "Dark Detail",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "Gamma",
+        "value": "ST2084"
+      },
+      {
+        "page": "Brightness",
+        "row": "AI Contrast",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "Dynamic Tone Mapping",
+        "value": "Off"
+      },
+      {
+        "page": "Color",
+        "row": "Color",
+        "value": 50
+      },
+      {
+        "page": "Color",
+        "row": "Color Temperature",
+        "value": "Warm1"
+      },
+      {
+        "page": "Color",
+        "row": "Color Space",
+        "value": "Auto"
+      },
+      {
+        "page": "Color",
+        "row": "Dynamic Color Enhancer",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Sharpness",
+        "value": 0
+      },
+      {
+        "page": "Clarity",
+        "row": "AI Super Resolution",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "MPEG Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Motion Enhancement",
+        "value": "Film"
+      },
+      {
+        "page": "Clarity",
+        "row": "Motion Clearness",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Precision Detail",
+        "value": "Off"
+      }
+    ],
+    "HDR Standard": [
+      {
+        "page": "Brightness",
+        "row": "Local Dimming",
+        "value": "High"
+      },
+      {
+        "page": "Brightness",
+        "row": "Peak Brightness",
+        "value": "High"
+      },
+      {
+        "page": "Brightness",
+        "row": "Brightness",
+        "value": 100
+      },
+      {
+        "page": "Brightness",
+        "row": "Contrast",
+        "value": 50
+      },
+      {
+        "page": "Brightness",
+        "row": "Black Level",
+        "value": 0
+      },
+      {
+        "page": "Brightness",
+        "row": "Dark Detail",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "Gamma",
+        "value": "ST2084"
+      },
+      {
+        "page": "Brightness",
+        "row": "AI Contrast",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "Dynamic Tone Mapping",
+        "value": "On"
+      },
+      {
+        "page": "Color",
+        "row": "Color",
+        "value": 50
+      },
+      {
+        "page": "Color",
+        "row": "Color Temperature",
+        "value": "Warm1"
+      },
+      {
+        "page": "Color",
+        "row": "Color Space",
+        "value": "Auto"
+      },
+      {
+        "page": "Color",
+        "row": "Dynamic Color Enhancer",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Sharpness",
+        "value": 0
+      },
+      {
+        "page": "Clarity",
+        "row": "AI Super Resolution",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "MPEG Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Motion Enhancement",
+        "value": "Film"
+      },
+      {
+        "page": "Clarity",
+        "row": "Motion Clearness",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Precision Detail",
+        "value": "Off"
+      }
+    ],
+    "Dolby Vision Dark": [
+      {
+        "page": "Brightness",
+        "row": "Local Dimming",
+        "value": "High"
+      },
+      {
+        "page": "Brightness",
+        "row": "Peak Brightness",
+        "value": "High"
+      },
+      {
+        "page": "Brightness",
+        "row": "Brightness",
+        "value": 100
+      },
+      {
+        "page": "Brightness",
+        "row": "Dark Detail",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "AI Contrast",
+        "value": "Off"
+      },
+      {
+        "page": "Color",
+        "row": "Color",
+        "value": 50
+      },
+      {
+        "page": "Color",
+        "row": "Color Temperature",
+        "value": "Warm1"
+      },
+      {
+        "page": "Color",
+        "row": "Dynamic Color Enhancer",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Sharpness",
+        "value": 0
+      },
+      {
+        "page": "Clarity",
+        "row": "AI Super Resolution",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "MPEG Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Precision Detail",
+        "value": "Off"
+      }
+    ],
+    "Dolby Vision IQ": [
+      {
+        "page": "Brightness",
+        "row": "Local Dimming",
+        "value": "High"
+      },
+      {
+        "page": "Brightness",
+        "row": "Peak Brightness",
+        "value": "High"
+      },
+      {
+        "page": "Brightness",
+        "row": "Brightness",
+        "value": 100
+      },
+      {
+        "page": "Brightness",
+        "row": "Dark Detail",
+        "value": "Off"
+      },
+      {
+        "page": "Brightness",
+        "row": "AI Contrast",
+        "value": "Off"
+      },
+      {
+        "page": "Color",
+        "row": "Color",
+        "value": 50
+      },
+      {
+        "page": "Color",
+        "row": "Color Temperature",
+        "value": "Warm1"
+      },
+      {
+        "page": "Color",
+        "row": "Dynamic Color Enhancer",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Sharpness",
+        "value": 0
+      },
+      {
+        "page": "Clarity",
+        "row": "AI Super Resolution",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "MPEG Noise Reduction",
+        "value": "Off"
+      },
+      {
+        "page": "Clarity",
+        "row": "Precision Detail",
+        "value": "Off"
+      }
+    ]
+  },
+  "panel_button": {
+    "broadcast": "com.hisense.INTERCEPT_BUTTON_OPERATING",
+    "extra": "keycode",
+    "keycode": 172
+  }
+}

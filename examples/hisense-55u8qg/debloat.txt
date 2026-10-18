@@ -1,7 +1,7 @@
-# Hisense Google TV (model "SmartTV 4K FFM", device wutaishan), Android 14 (SDK 34), build UKN6.251123.001.049
+# Hisense 55U8QG Google TV (reports itself as "SmartTV 4K FFM", device wutaishan), Android 14 (SDK 34), build UKN6.251123.001.049
 #
 # Apply:   adb shell pm disable-user --user 0 <pkg>   (one per call), or tools/disable.sh
-# Undo:    tools/restore.sh examples/hisense-wutaishan/debloat.txt com.google.android.apps.tv.launcherx
+# Undo:    tools/restore.sh examples/hisense-55u8qg/debloat.txt com.google.android.apps.tv.launcherx
 # Everything is DISABLED, not uninstalled.
 #
 # Kept on purpose: launcherx (stock home, kept installed but not default), dreamx (ambient screensaver),

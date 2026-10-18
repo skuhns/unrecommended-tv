@@ -47,7 +47,7 @@ public class SearchActivity extends Activity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService io = Executors.newSingleThreadExecutor();
-    private final Tmdb tmdb = new Tmdb(BuildConfig.TMDB_TOKEN);
+    private Tmdb tmdb;
     /** Bumped on every new query so late answers for old queries are dropped. */
     private int generation;
 
@@ -67,6 +67,7 @@ public class SearchActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search);
+        tmdb = new Tmdb(BuildConfig.TMDB_TOKEN, getString(R.string.tmdb_region));
         float d = getResources().getDisplayMetrics().density;
 
         query = findViewById(R.id.query);

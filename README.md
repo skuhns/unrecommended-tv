@@ -1,121 +1,86 @@
 # tv-vibehack
 
-**Your TV, minus the ads.** Debloat any Android TV / Google TV over ADB and give it a clean,
-tvOS-inspired launcher. Hand the prompt to Claude Code or any coding assistant, answer a few
-questions about which apps you use, and it does the rest on the real TV.
+**A calm, ad-free home screen for Android TV and Google TV, set up for your TV and your taste.**
 
-| Stock home screen | After |
+Your TV's stock home screen is mostly ads and "Top picks". This replaces it with a minimal launcher:
+your six favourite apps over a rotating painting from the Art Institute of Chicago, a clock and the
+weather, what's playing, search across your apps, one-press picture settings tuned for your exact
+TV, and your team's game when it's game day. Everything else waits one scroll below.
+
+| Stock Google TV | After |
 |---|---|
-| ![Stock Google TV home with a sponsored ad](docs/stock-home.jpg) | ![tvOS-style launcher](docs/new-home.jpg) |
+| ![Stock Google TV home with a sponsored banner](docs/stock-home.jpg) | ![Minimal home: a painting, clock and weather, six faint app tiles](docs/home.jpg) |
 
-Everything is reversible: packages are disabled, never uninstalled, and a restore script puts the
-stock launcher back.
+You don't need to be a developer. The easiest way is to let an AI coding assistant (Claude Code or
+similar) do the work with you: it connects to your TV over your Wi-Fi, asks what you watch, researches
+the best picture settings for your model, and sets everything up, checking each step on the real TV.
+Everything is reversible.
 
-## Quick start
+## What you get
 
-1. On the TV: Settings → Device Preferences → About → press OK on **Build** seven times → back →
-   Developer options → turn on **USB debugging** (and Network/ADB debugging if your TV shows it).
-   Keep the TV on and on the same Wi-Fi as your computer.
-2. Open Claude Code (or your assistant of choice) on your computer and paste the prompt from
-   [`PROMPT.md`](PROMPT.md), filling in your TV model.
-3. Accept the "Allow USB debugging?" prompt on the TV when told to, then answer the checklist
-   questions (which apps you use, which four go in the dock).
+- **Minimal first screen.** Clock, weather, and up to six favourite apps along the bottom, faint until
+  you land on one. Scroll down for the rest: a "More" row, your HDMI inputs and every other app.
+- **Art.** A different public-domain painting every minute (Art Institute of Chicago), with a small
+  museum-style label.
+- **Now playing.** Song, artist and play/pause/next for whatever's playing. With nothing playing it
+  offers your music app; Play resumes your last song without opening it.
+- **Search.** Your apps, plus movies and shows with "Watch on …" buttons for the apps you have.
+- **Picture looks** (supported TVs, see [docs/PICTURE.md](docs/PICTURE.md)). *Night*, *Day* and *Sports & TV*
+  presets researched for your model, for regular, HDR and Dolby Vision content, plus shortcuts into
+  the TV's Brightness and Picture Mode menus. A spare remote button opens them over anything you're watching.
+- **Game day.** On game days your team's game appears above the apps; one press tunes the right
+  antenna channel or opens the streaming app that has it. Spoiler-free by default.
+- **Your layout.** Hold OK on any app to move it, or send it to Favourites, More or All apps.
+- **No ads, no recommendations, no tracking.** The TV's own ad and promo apps are switched off.
 
-That's it. The assistant backs up, debloats, builds and installs the launcher, and verifies each
-step with screenshots from the TV. If you'd rather do it by hand, the pieces are below.
+| Below the fold | Picture panel |
+|---|---|
+| ![More row, inputs and All apps](docs/more.jpg) | ![Picture panel with Night, Day, Sports & TV](docs/picture.jpg) |
 
-## What's in the repo
+## Set it up
+
+**Recommended: with an AI assistant.** Follow [docs/SETUP.md](docs/SETUP.md) to put your TV in developer
+mode (two minutes), then paste [PROMPT.md](PROMPT.md) into Claude Code and answer its questions. It
+takes about an hour, most of it the assistant working.
+
+**By hand:** [docs/SETUP.md](docs/SETUP.md) has every step: connecting, choosing apps, the search key,
+building, installing.
+
+## How it fits together
 
 | Path | What it is |
 |---|---|
-| [`PROMPT.md`](PROMPT.md) | The prompt. Brand-neutral; the assistant discovers your TV's bloat. |
-| [`launcher/`](launcher/) | The tvOS-style launcher. Edit `app/src/main/res/values/config.xml` for your dock, hidden apps and Live TV package, then run `build-and-install.sh`. |
-| [`tools/tv.py`](tools/tv.py) | Pure-Python ADB client (shell, batch, push, pull). Works where the stock `adb` is blocked. |
-| [`tools/b64push.py`](tools/b64push.py) | Uploads larger files (APKs) as base64 chunks with an md5 check. |
-| [`tools/disable.sh`](tools/disable.sh), [`tools/restore.sh`](tools/restore.sh) | Apply or undo a debloat list. |
-| [`examples/`](examples/) | Per-TV debloat lists. Add yours, see [CONTRIBUTING.md](CONTRIBUTING.md). |
+| [`PROMPT.md`](PROMPT.md) | The prompt for your AI assistant: a guided setup interview. |
+| [`docs/SETUP.md`](docs/SETUP.md) | Step-by-step setup, for people and assistants. |
+| [`docs/CONFIG.md`](docs/CONFIG.md) | Every setting in `config.xml`, with common app package names. |
+| [`docs/PICTURE.md`](docs/PICTURE.md) | How picture looks work and how to make them for your TV. |
+| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Everything that went wrong once, and the fix. |
+| [`examples/`](examples/) | TV profiles: a folder per TV with its settings, picture recipes and debloat list. Start from [`examples/_template`](examples/_template). |
+| [`launcher/`](launcher/) | The launcher app (Java, small, no ads or tracking). |
+| [`tools/`](tools/) | Connect, debloat and restore scripts. |
 
-## The launcher
-
-A small native Android TV home screen (`com.gathin.tvhome`), built for sets with 1 GB of RAM:
-
-- Pitch-black background, like Apple TV 4K.
-- A dock at the bottom in a lighter rounded band with the four apps you choose. The shelf above
-  shows the focused dock app's name in large type with an ambient glow sampled from its banner.
-  Press Down and the dock slides up to reveal the rest of your apps in a grid.
-- One translucent glass highlight springs from tile to tile. The focused tile lifts and shows its
-  name.
-- Frosted pills top right: **Inputs** (a dropdown of HDMI ports, AV and Live TV), **Wi-Fi**
-  (shows the network name) and **Settings**. Greeting, a large thin clock and the date top left,
-  set in [Outfit](https://fonts.google.com/specimen/Outfit).
-- Deterministic D-pad navigation, last focused tile remembered, staggered entrance animation.
-  No blur, no video, no network, no background services.
-
-### Hisense branch additions
-
-- **Top bar**: Search, Picture and a now-playing banner (art, title, play/pause, next). With nothing
-  playing it shows Spotify, and Play resumes Spotify's last track in the background without opening it.
-  Needs notification access (granted by `build-and-install.sh`).
-- **Picture panel**: three looks (Movie night, Daytime, Sports & TV), brightness ±5 and every picture
-  mode. Hisense keeps these in a vendor service apps can't reach, so an accessibility service
-  ("Home picture control") operates the TV's own picture menu with D-pad presses. Enabled by
-  `build-and-install.sh`; force-stopping the app turns it off (re-run the script).
-- **Search**: installed apps plus movies and shows from TMDB, with "Watch on" buttons for the apps on
-  this TV that carry the title. Put a TMDB read token in `launcher/local.properties` as
-  `tmdb.token=...` (git-ignored).
-
-Configure it in [`launcher/app/src/main/res/values/config.xml`](launcher/app/src/main/res/values/config.xml):
-dock order, hidden apps, Live TV package and columns. Build and install with
+Your own settings live in a **TV profile**, `examples/<your-tv>/`, so the app itself stays generic:
 
 ```bash
-TV_SERIAL=192.168.1.50:5555 launcher/build-and-install.sh   # serial from `adb devices`
+TV_SERIAL=192.168.1.50:41234 TV_PROFILE=examples/my-tv launcher/build-and-install.sh
 ```
-
-Needs JDK 17 and the Android SDK (platform 34, build-tools 34.0.0). On macOS:
-`brew install openjdk@17 android-commandlinetools && sdkmanager "platforms;android-34" "build-tools;34.0.0"`.
-
-## Talking to the TV by hand
-
-```bash
-python3 -m venv tools/venv && tools/venv/bin/pip install -r tools/requirements.txt
-export TV_HOST=192.168.1.50                                   # your TV's IP
-tools/venv/bin/python -I tools/tv.py --probe                 # model, Android version, firmware
-tools/venv/bin/python -I tools/tv.py 'pm list packages'      # one command
-printf 'cmd1\ncmd2\n' | tools/venv/bin/python -I tools/tv.py --batch
-tools/disable.sh examples/xiaomi-mi-tv-4a/debloat.txt        # apply a list
-tools/restore.sh examples/xiaomi-mi-tv-4a/debloat.txt        # undo it, restore stock launcher
-```
-
-### Gotchas we hit
-
-- **macOS: `adb connect` says "No route to host"** while the port is clearly open. Recent macOS
-  treats the Google-signed `adb` as its own app under Local Network privacy and silently blocks it.
-  `tools/tv.py` avoids the binary entirely.
-- **No "wireless debugging" toggle** on some TVs (Xiaomi among them). USB debugging alone opens
-  network ADB on port 5555.
-- **Chained `pm` commands** (`pm disable a; pm disable b`) may silently stop after the first. Run
-  one per shell call; `--batch` does this.
-- **Large pushes hang** through the Python client. Use `tools/b64push.py` for APKs.
-- **Google TV ignores `set-home-activity`**: its launcher (`launcherx`) declares a higher HOME priority, so it must be disabled (with `com.google.android.tungsten.setupwraith`, which re-enables it). See `examples/hisense-wutaishan/`.
-- **Disable the stock launcher only after the new one is installed**, or the Home button lands on
-  a factory test app.
-- **Third-party launchers** often charge for basics like a custom wallpaper. Hence `launcher/`.
-- **No on-screen keyboard** after switching launchers (seen on Xiaomi): the default input method
-  pointed at a Baidu IME that isn't installed. Fix with
-  `tools/tv.py 'ime set com.google.android.inputmethod.latin/com.android.inputmethod.latin.LatinIME'`.
 
 ## Supported TVs
 
-Anything running Android TV or Google TV: Xiaomi/Redmi, TCL, Hisense, Sony, OnePlus, Realme,
-Nvidia Shield and most others. Not Samsung Tizen, LG webOS or Amazon Fire TV (different OS, no ADB
-launcher replacement). Tested so far on the models in [`examples/`](examples/).
+Any Android TV or Google TV (Hisense, TCL, Sony, Philips, Xiaomi, Nvidia Shield, Chromecast with
+Google TV…). Not Samsung, LG or Fire TV (different systems). The picture looks need a per-TV profile;
+the [Hisense 55U8QG](examples/hisense-55u8qg) one is complete and other Hisense Google TVs are likely
+close. Everything else works on any Android TV.
 
-## Contributing
+## Undo
 
-Add your TV's debloat list, improve the launcher, or sharpen the prompt. See
-[CONTRIBUTING.md](CONTRIBUTING.md).
+Nothing is uninstalled. `tools/restore.sh examples/<your-tv>/debloat.txt` turns everything back on and
+makes the stock home screen the default again.
 
 ## Licence
 
-MIT, see [`LICENSE`](LICENSE). The Outfit typeface is under the SIL Open Font License, see
-`launcher/FONT-LICENSE-OFL.txt`.
+MIT, see [`LICENSE`](LICENSE). Paintings: Art Institute of Chicago public-domain collection (CC0).
+Weather: Open-Meteo. Search data: TMDB and JustWatch. Schedules: ESPN. The Outfit typeface is under
+the SIL Open Font License (`launcher/FONT-LICENSE-OFL.txt`).
+
+Started by [gathin23](https://github.com/gathin23/tv-vibehack); extended for a Hisense Google TV.

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Example profile: a Hisense 55U8QG in Chicago, Bears fan, Spotify for music.
+  Built with:   TV_PROFILE=examples/hisense-55u8qg launcher/build-and-install.sh
+  Every setting is explained in docs/CONFIG.md.
+-->
+<resources>
+
+    <!-- Favourites: up to six, in one row along the bottom of the first screen. Missing apps are skipped. -->
+    <string-array name="front_apps">
+        <item>com.netflix.ninja</item>
+        <item>com.wbd.stream</item>
+        <item>com.apple.atve.androidtv.appletv</item>
+        <item>com.amazon.amazonvideo.livingroom</item>
+        <item>com.peacocktv.peacockandroid</item>
+        <item>com.spotify.tv.android</item>
+    </string-array>
+
+    <!-- "More": a side-scrolling row below the fold (scroll down to see it), in this order. -->
+    <string-array name="tier_apps">
+        <item>com.android.tv.settings</item>
+        <item>com.google.android.youtube.tv</item>
+        <item>com.hulu.livingroomplus</item>
+        <item>com.disney.disneyplus</item>
+        <item>com.tailscale.ipn</item>
+        <item>com.phlox.tvwebbrowser</item>
+        <item>com.vt.tv.tvcenter</item>     <!-- Hisense Live TV (antenna) -->
+    </string-array>
+
+    <!-- Never shown, not even under "All apps". Every other app lands in "All apps". -->
+    <string-array name="hidden_apps">
+    </string-array>
+
+    <integer name="all_apps_columns">6</integer>
+
+    <!-- Search: where-to-watch country for movies and shows (ISO code: US, GB, CA, DE…).
+         The TMDB key itself goes in launcher/local.properties as tmdb.token=… (see docs/SETUP.md). -->
+    <string name="tmdb_region" translatable="false">US</string>
+
+    <!-- Weather next to the greeting (Open-Meteo, free, no key). Leave lat empty to hide it. -->
+    <string name="weather_lat" translatable="false">41.88</string>   <!-- Chicago -->
+    <string name="weather_lon" translatable="false">-87.63</string>
+    <bool name="weather_fahrenheit">true</bool>
+
+    <!-- Game day: your team's games appear above the favourites on game day.
+         team = ESPN's NFL abbreviation (chi, gb, kc, phi…); leave empty to turn this off. -->
+    <string name="team" translatable="false">chi</string>
+    <string name="team_name" translatable="false">Bears</string>
+    <!-- Show the live score on the game-day label (off = spoiler-free). -->
+    <bool name="show_live_score">false</bool>
+    <!-- Your local over-the-air network channels, "network|channel|label". The game-day label tunes
+         these with an antenna; find yours at rabbitears.info or your TV's channel list. -->
+    <string-array name="local_stations">
+        <item>fox|32.1|FOX 32</item>
+        <item>cbs|2.1|CBS 2</item>
+        <item>nbc|5.1|NBC 5</item>
+        <item>abc|7.1|ABC 7</item>
+    </string-array>
+</resources>

@@ -1,0 +1,21 @@
+{
+  "_about": "Fill this in for your TV (docs/PICTURE.md), or delete it to hide the Picture panel. With no looks, the panel stays hidden.",
+  "menu": {
+    "package": "",
+    "open_action": "android.settings.DISPLAY_SETTINGS",
+    "title": "",
+    "mode_row": "Picture Mode",
+    "brightness_row": "Brightness",
+    "row_title_ids": ["android:id/title"],
+    "row_value_ids": ["android:id/summary"],
+    "page_title_id": ""
+  },
+  "mode_order": {
+    "sdr": [],
+    "hdr": [],
+    "dolby_vision": []
+  },
+  "looks": [],
+  "recipe_version": 1,
+  "recipes": {}
+}

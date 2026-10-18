@@ -1,0 +1,4 @@
+{
+  "_about": "No TV profile: the Picture panel is hidden. Build with TV_PROFILE=examples/<your-tv> to use one; see docs/PICTURE.md.",
+  "looks": []
+}

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Launcher settings: which apps go where, weather, your team, local channels.
+
+  These are the defaults. Your own settings belong in a TV profile (examples/<your-tv>/config.xml),
+  built with:   TV_PROFILE=examples/<your-tv> launcher/build-and-install.sh
+  A profile's config.xml replaces this whole file, so copy this one as your starting point.
+  Every setting is explained in docs/CONFIG.md.
+
+  Package names: on the TV run `adb shell pm list packages`, or see docs/CONFIG.md for common ones.
+-->
+<resources>
+
+    <!-- Favourites: up to six, in one row along the bottom of the first screen. Missing apps are skipped. -->
+    <string-array name="front_apps">
+        <item>com.netflix.ninja</item>
+        <item>com.google.android.youtube.tv</item>
+        <item>com.amazon.amazonvideo.livingroom</item>
+        <item>com.disney.disneyplus</item>
+        <item>com.wbd.stream</item>
+        <item>com.spotify.tv.android</item>
+    </string-array>
+
+    <!-- "More": a side-scrolling row below the fold (scroll down to see it), in this order. -->
+    <string-array name="tier_apps">
+        <item>com.android.tv.settings</item>
+        <item>com.google.android.youtube.tvmusic</item>
+        <item>com.android.vending</item>
+    </string-array>
+
+    <!-- Never shown, not even under "All apps". Every other app lands in "All apps". -->
+    <string-array name="hidden_apps">
+    </string-array>
+
+    <integer name="all_apps_columns">6</integer>
+
+    <!-- Search: where-to-watch country for movies and shows (ISO code: US, GB, CA, DE…).
+         The TMDB key itself goes in launcher/local.properties as tmdb.token=… (see docs/SETUP.md). -->
+    <string name="tmdb_region" translatable="false">US</string>
+
+    <!-- Weather next to the greeting (Open-Meteo, free, no key). Leave lat empty to hide it. -->
+    <string name="weather_lat" translatable="false"></string>
+    <string name="weather_lon" translatable="false"></string>
+    <bool name="weather_fahrenheit">true</bool>
+
+    <!-- Game day: your team's games appear above the favourites on game day.
+         team = ESPN's NFL abbreviation (chi, gb, kc, phi…); leave empty to turn this off. -->
+    <string name="team" translatable="false"></string>
+    <string name="team_name" translatable="false"></string>
+    <!-- Show the live score on the game-day label (off = spoiler-free). -->
+    <bool name="show_live_score">false</bool>
+    <!-- Your local over-the-air network channels, "network|channel|label". The game-day label tunes
+         these with an antenna; find yours at rabbitears.info or your TV's channel list. -->
+    <string-array name="local_stations">
+    </string-array>
+</resources>

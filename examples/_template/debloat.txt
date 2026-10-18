@@ -1,0 +1,18 @@
+# <Brand Model> (<what getprop / About says>), Android <version>, build <ro.build.display.id>
+#
+# Apply:   TV_SERIAL=<ip:port> tools/disable.sh examples/<your-tv>/debloat.txt
+# Undo:    TV_SERIAL=<ip:port> tools/restore.sh examples/<your-tv>/debloat.txt
+# One package per line; text after # is a comment. Everything is disabled, never uninstalled.
+# Keep: mic/voice, casting (Chromecast, AirPlay, DLNA), the TV's picture/sound/input/tuner services,
+# firmware updates.
+
+# Ads and promotions (maker content rows, free-channel apps, auto-installers, store demo)
+# com.example.promo
+
+# Maker apps you don't use
+# com.example.app
+
+# Google TV: the stock launcher outranks every other Home app, so it has to be disabled
+# (setupwraith turns it back on otherwise). Remove these two lines on non-Google-TV sets.
+com.google.android.tungsten.setupwraith
+com.google.android.apps.tv.launcherx
