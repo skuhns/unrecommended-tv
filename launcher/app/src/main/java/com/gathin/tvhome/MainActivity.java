@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -15,6 +16,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -49,6 +51,12 @@ public class MainActivity extends Activity {
     private TextView greeting;
     private NowPlayingBar nowPlaying;
     private BackdropView backdrop;
+    private AppLayout layout;
+
+    /** Move mode: the app being moved, its section, and the order to restore on Back. */
+    private String movingPkg;
+    private AppLayout.Section movingSection;
+    private List<String> movingUndo;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable minuteTick = new Runnable() {
@@ -65,6 +73,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         float d = getResources().getDisplayMetrics().density;
 
+        layout = new AppLayout(this);
         scroll = findViewById(R.id.scroll);
         greeting = findViewById(R.id.greeting);
         front = findViewById(R.id.front);
@@ -184,36 +193,153 @@ public class MainActivity extends Activity {
 
     // ---- apps ------------------------------------------------------------------------------------
 
+    private final Map<String, TileAdapter.Tile> appTiles = new LinkedHashMap<>();
+
     private void reloadApps() {
         PackageManager pm = getPackageManager();
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        Map<String, TileAdapter.Tile> byPkg = new LinkedHashMap<>();
+        appTiles.clear();
+        Map<String, String> labels = new LinkedHashMap<>();
         for (ResolveInfo ri : pm.queryIntentActivities(probe, 0)) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(getPackageName()) || byPkg.containsKey(pkg)) continue;
+            if (pkg.equals(getPackageName()) || appTiles.containsKey(pkg)) continue;
             Drawable banner = ri.activityInfo.loadBanner(pm);
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             String label = String.valueOf(ri.loadLabel(pm));
             ComponentName cn = new ComponentName(pkg, ri.activityInfo.name);
-            byPkg.put(pkg, new TileAdapter.Tile(label, banner, ri.loadIcon(pm),
-                    () -> launchApp(cn, label), () -> openAppInfo(pkg)));
+            appTiles.put(pkg, new TileAdapter.Tile(pkg, label, banner, ri.loadIcon(pm),
+                    () -> launchApp(cn, label), () -> showAppOptions(pkg)));
+            labels.put(pkg, label);
         }
-
-        List<String> frontPkgs = Arrays.asList(getResources().getStringArray(R.array.front_apps));
-        List<String> tierPkgs = Arrays.asList(getResources().getStringArray(R.array.tier_apps));
         Set<String> hidden = new HashSet<>(Arrays.asList(getResources().getStringArray(R.array.hidden_apps)));
+        layout.sync(this, labels, hidden);
+        showLayout();
+    }
 
-        frontAdapter.setTiles(pick(byPkg, frontPkgs));
-        tierAdapter.setTiles(pick(byPkg, tierPkgs));
+    private void showLayout() {
+        frontAdapter.setTiles(pick(appTiles, layout.front));
+        tierAdapter.setTiles(pick(appTiles, layout.tier));
+        allAdapter.setTiles(pick(appTiles, layout.all));
+        // A rebuilt row keeps its old scroll offset otherwise, hiding whatever now sits first.
+        tier.scrollToPosition(0);
+    }
 
-        List<TileAdapter.Tile> rest = new ArrayList<>();
-        for (Map.Entry<String, TileAdapter.Tile> e : byPkg.entrySet()) {
-            String pkg = e.getKey();
-            if (!frontPkgs.contains(pkg) && !tierPkgs.contains(pkg) && !hidden.contains(pkg)) rest.add(e.getValue());
+    // ---- arranging apps --------------------------------------------------------------------------
+
+    private RecyclerView viewFor(AppLayout.Section s) {
+        return s == AppLayout.Section.FRONT ? front : s == AppLayout.Section.TIER ? tier : allApps;
+    }
+
+    private TileAdapter adapterFor(AppLayout.Section s) {
+        return s == AppLayout.Section.FRONT ? frontAdapter : s == AppLayout.Section.TIER ? tierAdapter : allAdapter;
+    }
+
+    private static String sectionName(AppLayout.Section s) {
+        return s == AppLayout.Section.FRONT ? "Big tiles" : s == AppLayout.Section.TIER ? "More" : "All apps";
+    }
+
+    /** Hold OK on an app: move it, send it to another section, or open its app info. */
+    private void showAppOptions(String pkg) {
+        TileAdapter.Tile tile = appTiles.get(pkg);
+        AppLayout.Section here = layout.sectionOf(pkg);
+        List<String> labels = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        if (layout.list(here).size() > 1) {
+            labels.add("Move");
+            actions.add(() -> startMoving(pkg));
         }
-        Collections.sort(rest, (a, b) -> a.label.compareToIgnoreCase(b.label));
-        allAdapter.setTiles(rest);
+        for (AppLayout.Section to : AppLayout.Section.values()) {
+            if (to == here) continue;
+            labels.add("Move to " + sectionName(to));
+            actions.add(() -> sendTo(pkg, to));
+        }
+        labels.add("App info");
+        actions.add(() -> openAppInfo(pkg));
+        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle(tile != null ? tile.label : pkg)
+                .setItems(labels.toArray(new String[0]), (d, which) -> actions.get(which).run())
+                .show();
+    }
+
+    private void sendTo(String pkg, AppLayout.Section to) {
+        layout.moveTo(pkg, to);
+        showLayout();
+        if (to == AppLayout.Section.ALL) setAllAppsShown(true);
+        focusApp(pkg);
+    }
+
+    private void focusApp(String pkg) {
+        AppLayout.Section s = layout.sectionOf(pkg);
+        RecyclerView rv = viewFor(s);
+        int pos = layout.list(s).indexOf(pkg);
+        if (pos < 0) return;
+        rv.scrollToPosition(pos);
+        rv.post(() -> {
+            RecyclerView.ViewHolder vh = rv.findViewHolderForAdapterPosition(pos);
+            if (vh != null) vh.itemView.findViewById(R.id.card).requestFocus();
+        });
+    }
+
+    private void startMoving(String pkg) {
+        movingPkg = pkg;
+        movingSection = layout.sectionOf(pkg);
+        movingUndo = new ArrayList<>(layout.list(movingSection));
+        adapterFor(movingSection).setMoving(movingUndo.indexOf(pkg));
+        focusApp(pkg);
+        Toast.makeText(this, "Arrows move it · OK places it · Back cancels", Toast.LENGTH_LONG).show();
+    }
+
+    private void stopMoving(boolean keep) {
+        AppLayout.Section s = movingSection;
+        String pkg = movingPkg;
+        if (!keep) {
+            List<String> order = layout.list(s);
+            order.clear();
+            order.addAll(movingUndo);
+        }
+        layout.save();
+        movingPkg = null;
+        movingSection = null;
+        movingUndo = null;
+        adapterFor(s).setMoving(-1);
+        showLayout();
+        focusApp(pkg);
+    }
+
+    /** While moving, the arrows reorder instead of moving focus. */
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent e) {
+        if (movingPkg == null) return super.dispatchKeyEvent(e);
+        int key = e.getKeyCode();
+        boolean handled = key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT
+                || key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN
+                || key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
+                || key == KeyEvent.KEYCODE_BACK;
+        if (!handled) return super.dispatchKeyEvent(e);
+        if (e.getAction() != KeyEvent.ACTION_DOWN) return true;
+        if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
+            stopMoving(true);
+            return true;
+        }
+        if (key == KeyEvent.KEYCODE_BACK) {
+            stopMoving(false);
+            return true;
+        }
+        List<String> order = layout.list(movingSection);
+        int from = order.indexOf(movingPkg);
+        int cols = movingSection == AppLayout.Section.FRONT ? getResources().getInteger(R.integer.front_columns)
+                : movingSection == AppLayout.Section.ALL ? getResources().getInteger(R.integer.all_apps_columns) : 0;
+        int to = from;
+        if (key == KeyEvent.KEYCODE_DPAD_LEFT) to = from - 1;
+        else if (key == KeyEvent.KEYCODE_DPAD_RIGHT) to = from + 1;
+        else if (cols > 0 && key == KeyEvent.KEYCODE_DPAD_UP) to = from - cols;
+        else if (cols > 0 && key == KeyEvent.KEYCODE_DPAD_DOWN) to = from + cols;
+        if (to < 0 || to >= order.size() || to == from) return true;
+        order.add(to, order.remove(from));
+        adapterFor(movingSection).move(from, to);
+        focusApp(movingPkg);
+        return true;
     }
 
     private static List<TileAdapter.Tile> pick(Map<String, TileAdapter.Tile> byPkg, List<String> pkgs) {

@@ -26,6 +26,7 @@ public class PictureService extends AccessibilityService {
     private static final String ID_TITLE_HISENSE = PKG + ":id/title";
     private static final String ID_INDICATOR = PKG + ":id/indicator";
     private static final String ID_DECOR_TITLE = PKG + ":id/decor_title";
+    private static final String ID_SUMMARY = "android:id/summary";
     private static final String MENU_TITLE = "Display & Picture";
     private static final String ROW_MODE = "Picture Mode";
     private static final String ROW_BRIGHTNESS = "Brightness";
@@ -35,11 +36,41 @@ public class PictureService extends AccessibilityService {
     private static final long ROW_STEP_MS = 550L;
     private static final long WAIT_MS = 6_000L;
     private static final int MAX_MODES = 16;
+    private static final int MAX_CHOICES = 12;
+    private static final long FAST_STEP_MS = 140L;
 
     static final class Result {
         String mode;
         final List<String> modes = new ArrayList<>();
+        final List<String> changed = new ArrayList<>();
+        final List<String> skipped = new ArrayList<>();
         String error;
+    }
+
+    /** One row of a picture-mode recipe: a slider ({@code number}) or a list choice ({@code choice}). */
+    static final class Setting {
+        final String page, row, choice;
+        final int number;
+
+        private Setting(String page, String row, String choice, int number) {
+            this.page = page;
+            this.row = row;
+            this.choice = choice;
+            this.number = number;
+        }
+
+        static Setting choice(String page, String row, String value) {
+            return new Setting(page, row, value, -1);
+        }
+
+        static Setting number(String page, String row, int value) {
+            return new Setting(page, row, null, value);
+        }
+
+        @Override
+        public String toString() {
+            return row + " " + (choice != null ? choice : String.valueOf(number));
+        }
     }
 
     interface Done {
@@ -82,7 +113,17 @@ public class PictureService extends AccessibilityService {
     /** Switch to the first of {@code targets} this content offers (names compared loosely). Empty targets: just read. */
     void setMode(List<String> targets, Done cb) {
         Result r = new Result();
-        start(cb, r, () -> waitForRow(ROW_MODE, r, () -> findMode(targets, null, 0, r)));
+        start(cb, r, () -> waitForRow(ROW_MODE, r, () -> findMode(targets, null, 0, r, () -> finish(r))));
+    }
+
+    /**
+     * Switch to the first available mode in {@code targets}, then set each row of {@code recipe} on
+     * that mode (Hisense stores these per picture mode). Rows that don't exist are skipped, not fatal.
+     */
+    void applyRecipe(List<String> targets, List<Setting> recipe, Done cb) {
+        Result r = new Result();
+        start(cb, r, () -> waitForRow(ROW_MODE, r,
+                () -> findMode(targets, null, 0, r, () -> runRecipe(recipe, 0, null, r))));
     }
 
     /** Open the menu's Brightness page with the Brightness slider selected, and leave it open. */
@@ -167,23 +208,138 @@ public class PictureService extends AccessibilityService {
 
     /** Press Down (or Up, after a full pass) until the focused row's title is {@code row}. */
     private void moveTo(String row, int presses, Result r, Runnable then) {
+        moveTo(row, presses, then, () -> fail(r, "row not found: " + row));
+    }
+
+    private void moveTo(String row, int presses, Runnable then, Runnable missing) {
         if (row.equals(valueOf(focusedRow(), ID_TITLE))) {
             then.run();
             return;
         }
-        if (presses >= 20) {
-            fail(r, "row not found: " + row);
+        if (presses >= 24) {
+            missing.run();
             return;
         }
-        global(presses < 10 ? GLOBAL_ACTION_DPAD_DOWN : GLOBAL_ACTION_DPAD_UP);
-        handler.postDelayed(() -> moveTo(row, presses + 1, r, then), ROW_STEP_MS);
+        global(presses < 12 ? GLOBAL_ACTION_DPAD_DOWN : GLOBAL_ACTION_DPAD_UP);
+        handler.postDelayed(() -> moveTo(row, presses + 1, then, missing), ROW_STEP_MS);
+    }
+
+    // ---- recipes ---------------------------------------------------------------------------------
+
+    /** Settings run in order; consecutive ones on the same page share one visit to it. */
+    private void runRecipe(List<Setting> recipe, int i, String page, Result r) {
+        if (i >= recipe.size()) {
+            if (page == null) finish(r);
+            else leavePage(r, () -> finish(r));
+            return;
+        }
+        Setting s = recipe.get(i);
+        Runnable next = () -> runRecipe(recipe, i + 1, s.page, r);
+        if (s.page.equals(page)) {
+            applySetting(s, r, next);
+        } else if (page != null) {
+            leavePage(r, () -> runRecipe(recipe, i, null, r));
+        } else {
+            moveTo(s.page, 0, () -> {
+                if (!pressOkOn(s.page)) {
+                    fail(r, "lost track of the menu");
+                    return;
+                }
+                later(() -> waitForDecor(s.page, SystemClock.uptimeMillis(), r, () -> applySetting(s, r, next)));
+            }, () -> fail(r, "page not found: " + s.page));
+        }
+    }
+
+    private void leavePage(Result r, Runnable then) {
+        global(GLOBAL_ACTION_BACK);
+        later(() -> waitForDecor(MENU_TITLE, SystemClock.uptimeMillis(), r, then));
+    }
+
+    private void applySetting(Setting s, Result r, Runnable next) {
+        moveTo(s.row, 0, () -> {
+            if (s.choice != null) pickChoice(s, null, 0, r, next);
+            else setNumber(s, 0, r, next);
+        }, () -> {
+            r.skipped.add(s.row + " (not on this TV)");
+            next.run();
+        });
+    }
+
+    /** List rows (Gamma, Local Dimming…) cycle with Right; stop on the value or after a full lap. */
+    private void pickChoice(Setting s, String start, int steps, Result r, Runnable next) {
+        String cur = currentValue();
+        if (cur == null) {
+            r.skipped.add(s.row + " (couldn't read it)");
+            next.run();
+            return;
+        }
+        if (same(cur, s.choice)) {
+            if (steps > 0) r.changed.add(s.row + " → " + cur);
+            next.run();
+            return;
+        }
+        String first = start == null ? cur : start;
+        if ((steps > 0 && same(cur, first)) || steps >= MAX_CHOICES) {
+            r.skipped.add(s.row + " (no \"" + s.choice + "\" option)");
+            next.run();
+            return;
+        }
+        global(GLOBAL_ACTION_DPAD_RIGHT);
+        later(() -> pickChoice(s, first, steps + 1, r, next));
+    }
+
+    /** Sliders step by one per Left/Right; re-read and correct once in case a press was dropped. */
+    private void setNumber(Setting s, int attempt, Result r, Runnable next) {
+        int cur = parseInt(currentValue());
+        if (cur < 0) {
+            r.skipped.add(s.row + " (couldn't read it)");
+            next.run();
+            return;
+        }
+        int delta = s.number - cur;
+        if (delta == 0) {
+            if (attempt > 0) r.changed.add(s.row + " → " + cur);
+            next.run();
+            return;
+        }
+        if (attempt >= 3) {
+            r.skipped.add(s.row + " (stuck at " + cur + ")");
+            next.run();
+            return;
+        }
+        press(delta > 0 ? GLOBAL_ACTION_DPAD_RIGHT : GLOBAL_ACTION_DPAD_LEFT, Math.abs(delta),
+                () -> setNumber(s, attempt + 1, r, next));
+    }
+
+    private void press(int action, int times, Runnable then) {
+        if (times <= 0) {
+            later(then);
+            return;
+        }
+        global(action);
+        handler.postDelayed(() -> press(action, times - 1, then), FAST_STEP_MS);
+    }
+
+    /** The focused row's value: the inline chooser while focused, else its summary line. */
+    private String currentValue() {
+        AccessibilityNodeInfo row = focusedRow();
+        String v = valueOf(row, ID_INDICATOR);
+        return v != null ? v : valueOf(row, ID_SUMMARY);
+    }
+
+    private static int parseInt(String s) {
+        try {
+            return s == null ? -1 : Integer.parseInt(s.trim());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
     }
 
     /**
      * Walk the Picture Mode values with Right, recording every mode this content offers, until back
      * at the start (or on the first choice). Then step to the best available target.
      */
-    private void findMode(List<String> targets, String start, int steps, Result r) {
+    private void findMode(List<String> targets, String start, int steps, Result r, Runnable then) {
         String cur = valueOf(focusedRow(), ID_INDICATOR);
         if (cur == null) {
             fail(r, "could not read picture mode");
@@ -194,38 +350,38 @@ public class PictureService extends AccessibilityService {
         r.mode = cur;
         boolean hasTargets = targets != null && !targets.isEmpty();
         if (hasTargets && same(cur, targets.get(0))) {
-            finish(r);
+            then.run();
             return;
         }
         boolean wrapped = steps > 0 && same(cur, first);
         if (!wrapped && steps < MAX_MODES) {
             global(GLOBAL_ACTION_DPAD_RIGHT);
-            later(() -> findMode(targets, first, steps + 1, r));
+            later(() -> findMode(targets, first, steps + 1, r, then));
             return;
         }
         if (!hasTargets) {
-            finish(r);
+            then.run();
             return;
         }
         for (String t : targets) {
             if (containsLoose(r.modes, t)) {
-                walkTo(t, 0, r);
+                walkTo(t, 0, r, then);
                 return;
             }
         }
         fail(r, "none of these modes are available here: " + targets);
     }
 
-    private void walkTo(String target, int steps, Result r) {
+    private void walkTo(String target, int steps, Result r, Runnable then) {
         String cur = valueOf(focusedRow(), ID_INDICATOR);
         r.mode = cur;
         if (same(cur, target)) {
-            finish(r);
+            then.run();
         } else if (steps >= MAX_MODES) {
             fail(r, "could not reach " + target);
         } else {
             global(GLOBAL_ACTION_DPAD_RIGHT);
-            later(() -> walkTo(target, steps + 1, r));
+            later(() -> walkTo(target, steps + 1, r, then));
         }
     }
 

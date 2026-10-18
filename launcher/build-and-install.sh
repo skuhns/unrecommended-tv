@@ -19,6 +19,10 @@ adb -s "$TV_SERIAL" shell cmd notification allow_listener com.gathin.tvhome/com.
 SVC=com.gathin.tvhome/com.gathin.tvhome.PictureService
 CUR=$(adb -s "$TV_SERIAL" shell settings get secure enabled_accessibility_services | tr -d '\r')
 case "$CUR" in *"$SVC"*) ;; ""|null) CUR="$SVC" ;; *) CUR="$CUR:$SVC" ;; esac
+# Clear then set: after an update Android keeps the setting but doesn't always rebind the service.
+OTHERS=$(printf '%s' "$CUR" | tr ':' '\n' | { grep -v "^$SVC$" || true; } | paste -sd: -)
+adb -s "$TV_SERIAL" shell settings put secure enabled_accessibility_services "${OTHERS:-\"\"}"
+sleep 1
 adb -s "$TV_SERIAL" shell settings put secure enabled_accessibility_services "$CUR"
 adb -s "$TV_SERIAL" shell settings put secure accessibility_enabled 1
 echo "Installed. Press Home on the remote to see it."

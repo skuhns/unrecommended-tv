@@ -26,8 +26,15 @@ public class TileAdapter extends RecyclerView.Adapter<TileAdapter.Holder> {
         final Drawable icon;
         final Runnable onClick;
         final Runnable onLongClick;
+        /** The app's package; null for non-app tiles (inputs). */
+        final String pkg;
 
         Tile(String label, Drawable banner, Drawable icon, Runnable onClick, Runnable onLongClick) {
+            this(null, label, banner, icon, onClick, onLongClick);
+        }
+
+        Tile(String pkg, String label, Drawable banner, Drawable icon, Runnable onClick, Runnable onLongClick) {
+            this.pkg = pkg;
             this.label = label;
             this.banner = banner;
             this.icon = icon;
@@ -50,6 +57,8 @@ public class TileAdapter extends RecyclerView.Adapter<TileAdapter.Holder> {
     /** Horizontal rows trap Left/Right at their ends so focus doesn't jump to another row. */
     private final boolean horizontal;
     private final List<Tile> tiles = new ArrayList<>();
+    /** The tile being moved (shown with a distinct outline), or -1. */
+    private int movingPos = -1;
 
     TileAdapter(int widthPx, int heightPx, boolean horizontal) {
         this.widthPx = widthPx;
@@ -68,6 +77,25 @@ public class TileAdapter extends RecyclerView.Adapter<TileAdapter.Holder> {
 
     void setFocusListener(FocusListener l) {
         focusListener = l;
+    }
+
+    void setMoving(int pos) {
+        int old = movingPos;
+        movingPos = pos;
+        if (old >= 0) notifyItemChanged(old);
+        if (pos >= 0) notifyItemChanged(pos);
+    }
+
+    /** Slide the tile at {@code from} to {@code to}; the moving outline follows it. */
+    void move(int from, int to) {
+        tiles.add(to, tiles.remove(from));
+        if (movingPos == from) movingPos = to;
+        notifyItemMoved(from, to);
+        notifyItemChanged(to);
+    }
+
+    Tile tileAt(int pos) {
+        return tiles.get(pos);
     }
 
     void setTiles(List<Tile> fresh) {
@@ -106,6 +134,8 @@ public class TileAdapter extends RecyclerView.Adapter<TileAdapter.Holder> {
             h.label.setText(t.label);
             h.label.setVisibility(View.VISIBLE);
         }
+        h.card.setForeground(h.card.getContext().getDrawable(
+                position == movingPos ? R.drawable.tile_moving : R.drawable.tile_focus));
         h.card.setOnClickListener(v -> t.onClick.run());
         h.card.setOnLongClickListener(t.onLongClick == null ? null : v -> {
             t.onLongClick.run();
