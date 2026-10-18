@@ -1,6 +1,9 @@
-# tv-vibehack
+# unrecommended-tv
 
 **A calm, ad-free home screen for Android TV and Google TV, set up for your TV and your taste.**
+
+> A fork of [gathin23/tv-vibehack](https://github.com/gathin23/tv-vibehack) by Gathin: the original
+> debloat-and-launcher project, its ADB tools and the launcher this one grew from. See [Credits](#credits).
 
 Your TV's stock home screen is mostly ads and "Top picks". This replaces it with a minimal launcher:
 your six favourite apps over a rotating painting from the Art Institute of Chicago, a clock and the
@@ -83,4 +86,13 @@ MIT, see [`LICENSE`](LICENSE). Paintings: Art Institute of Chicago public-domain
 Weather: Open-Meteo. Search data: TMDB and JustWatch. Schedules: ESPN. The Outfit typeface is under
 the SIL Open Font License (`launcher/FONT-LICENSE-OFL.txt`).
 
-Started by [gathin23](https://github.com/gathin23/tv-vibehack); extended for a Hisense Google TV.
+## Credits
+
+- **[Gathin (gathin23/tv-vibehack)](https://github.com/gathin23/tv-vibehack)**: the original project.
+  The idea of debloating over ADB with an AI assistant, the first launcher (its tile, focus and
+  inputs code still runs here), `tools/tv.py` and `tools/b64push.py`, the Xiaomi debloat list, and the
+  MIT licence this fork keeps.
+- This fork: TV profiles, the minimal art home screen, now playing, search, picture looks, game day,
+  app arranging, and the setup guide and prompt, developed on a Hisense 55U8QG.
+- Data and assets: Art Institute of Chicago (public-domain images, CC0), Open-Meteo, TMDB and
+  JustWatch, ESPN, and the Outfit typeface (SIL Open Font License).

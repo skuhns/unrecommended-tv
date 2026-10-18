@@ -27,7 +27,7 @@ Nothing here changes how the TV works day to day.
 brew install --cask android-platform-tools      # adb, the tool that talks to the TV
 brew install openjdk@17 android-commandlinetools # only needed to build the launcher
 sdkmanager --sdk_root=/opt/homebrew/share/android-commandlinetools "platforms;android-34" "build-tools;34.0.0"
-git clone <this repository's URL> ~/tv-vibehack && cd ~/tv-vibehack
+git clone <this repository's URL> ~/unrecommended-tv && cd ~/unrecommended-tv
 ```
 
 **Pair, once.** On the TV: *Developer options → Wireless debugging → Pair device with pairing code*.
