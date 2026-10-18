@@ -37,12 +37,13 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Home: big tiles for favourite apps, a small side-scrolling row for the rest of the regulars,
- * a row of HDMI inputs, and an "All apps" section that stays collapsed until asked for.
+ * Home: a row of favourite apps, a row for the rest of the regulars, a row of HDMI inputs, and an
+ * "All apps" section that stays collapsed until asked for, over a rotating painting.
  */
 public class MainActivity extends Activity {
 
     private static final long MINUTE_MS = 60_000L;
+    private static final float TILE_REST_ALPHA = 0.45f;
 
     private ScrollView scroll;
     private RecyclerView front, tier, inputs, allApps;
@@ -52,6 +53,23 @@ public class MainActivity extends Activity {
     private NowPlayingBar nowPlaying;
     private BackdropView backdrop;
     private AppLayout layout;
+    private ArtRotator art;
+    private GameDay gameDay;
+    private Weather weather;
+    /**
+     * On a fresh start the window gives focus to the first focusable view (the Search button) once it
+     * gains focus, after onResume; start on the first favourite instead.
+     */
+    private boolean focusFavouritesOnWindowFocus = true;
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && focusFavouritesOnWindowFocus) {
+            focusFavouritesOnWindowFocus = false;
+            front.post(() -> focusFirst(front));
+        }
+    }
 
     /** Move mode: the app being moved, its section, and the order to restore on Back. */
     private String movingPkg;
@@ -63,6 +81,7 @@ public class MainActivity extends Activity {
         @Override
         public void run() {
             updateGreeting();
+            weather.refresh();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -82,34 +101,69 @@ public class MainActivity extends Activity {
         allApps = findViewById(R.id.allApps);
         btnAllApps = findViewById(R.id.btnAllApps);
 
-        int bigW = (int) (256 * d), bigH = (int) (144 * d);
-        int smallW = (int) (152 * d), smallH = (int) (86 * d);
+        // One tile size everywhere, sized so six fit across the screen.
+        int tileW = (int) (128 * d), tileH = (int) (72 * d);
 
-        frontAdapter = new TileAdapter(bigW, bigH, false);
-        frontAdapter.setWrap(true);
-        setUpGrid(front, frontAdapter, getResources().getInteger(R.integer.front_columns));
-        tierAdapter = new TileAdapter(smallW, smallH, true);
+        // All six favourites fit across one screen, evenly spaced.
+        frontAdapter = new TileAdapter(tileW, tileH, false);
+        frontAdapter.setCentered(true);
+        frontAdapter.setShowNames(false);
+        setUpGrid(front, frontAdapter, AppLayout.FRONT_MAX);
+        tierAdapter = new TileAdapter(tileW, tileH, true);
         setUpRow(tier, tierAdapter);
-        inputsAdapter = new TileAdapter(smallW, smallH, true);
+        inputsAdapter = new TileAdapter(tileW, tileH, true);
         setUpRow(inputs, inputsAdapter);
-        allAdapter = new TileAdapter(smallW, smallH, false);
+        allAdapter = new TileAdapter(tileW, tileH, false);
+        allAdapter.setCentered(true);
         setUpGrid(allApps, allAdapter, getResources().getInteger(R.integer.all_apps_columns));
+        // App tiles stay faint until focused, so their bright brand colours don't fight the painting.
+        for (TileAdapter a : new TileAdapter[]{frontAdapter, tierAdapter, allAdapter}) {
+            a.setRestAlpha(TILE_REST_ALPHA);
+            a.setFocusRing(false);   // focus shows as full opacity and a slight lift instead
+        }
 
         btnAllApps.setOnClickListener(v -> setAllAppsShown(allApps.getVisibility() != View.VISIBLE));
         findViewById(R.id.btnSearch).setOnClickListener(v -> open(new Intent(this, SearchActivity.class)));
         findViewById(R.id.btnPicture).setOnClickListener(v -> open(new Intent(this, PicturePanelActivity.class)));
         nowPlaying = new NowPlayingBar(this);
 
-        // Background: album art while music plays, plus a glow in the focused app's colour.
+        // Background: a rotating painting.
         backdrop = findViewById(R.id.backdrop);
-        nowPlaying.setArtListener(backdrop::setArt);
-        TileAdapter.FocusListener glow = (tile, card) -> backdrop.glowFor(tile.banner != null ? tile.banner : tile.icon, card);
-        frontAdapter.setFocusListener(glow);
-        tierAdapter.setFocusListener(glow);
-        allAdapter.setFocusListener(glow);
-        scroll.getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
-            boolean appTile = newF != null && newF.getId() == R.id.card && inputs.findContainingViewHolder(newF) == null;
-            if (!appTile) backdrop.glowFor(null, null);
+        TextView weatherText = findViewById(R.id.weather);
+        weather = new Weather(getString(R.string.weather_lat), getString(R.string.weather_lon),
+                getResources().getBoolean(R.bool.weather_fahrenheit), weatherText::setText);
+
+        View gameLabel = findViewById(R.id.gameLabel);
+        TextView gameTitle = findViewById(R.id.gameTitle), gameDetail = findViewById(R.id.gameDetail);
+        gameDay = new GameDay(this, getString(R.string.team), getString(R.string.team_name),
+                getResources().getBoolean(R.bool.show_live_score), game -> {
+            gameLabel.setVisibility(game == null ? View.GONE : View.VISIBLE);
+            if (game == null) return;
+            gameTitle.setText(game.title);
+            gameDetail.setText(game.detail);
+            gameLabel.setFocusable(game.watch != null);
+            gameLabel.setOnClickListener(game.watch == null ? null : v -> game.watch.run());
+        });
+
+        View artLabel = findViewById(R.id.artLabel);
+        TextView artTitle = findViewById(R.id.artTitle), artByline = findViewById(R.id.artByline);
+        art = new ArtRotator((image, title, byline) -> {
+            backdrop.setWallpaper(image);
+            artTitle.setText(title);
+            artByline.setText(byline);
+            artByline.setVisibility(byline.isEmpty() ? View.GONE : View.VISIBLE);
+            artLabel.setVisibility(View.VISIBLE);
+        });
+
+        // The first screen is exactly one screen tall: clock, top bar, favourites. The rest is below.
+        View firstScreen = findViewById(R.id.firstScreen);
+        View content = findViewById(R.id.root);
+        scroll.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            int h = (b - t) - content.getPaddingTop();
+            if (firstScreen.getMinimumHeight() != h) {
+                firstScreen.setMinimumHeight(h);
+                firstScreen.requestLayout();
+            }
         });
     }
 
@@ -133,9 +187,11 @@ public class MainActivity extends Activity {
         reloadApps();
         reloadInputs();
         updateGreeting();
+        weather.refresh();
         handler.postDelayed(minuteTick, MINUTE_MS);
         nowPlaying.start();
-        backdrop.resume();
+        art.start();
+        gameDay.start();
         // The window may hand initial focus to the scroll view itself; move it onto a tile.
         front.post(() -> {
             View f = getCurrentFocus();
@@ -148,13 +204,22 @@ public class MainActivity extends Activity {
         super.onPause();
         handler.removeCallbacks(minuteTick);
         nowPlaying.stop();
-        backdrop.pause();
+        art.stop();
+        gameDay.stop();
     }
 
-    /** Home pressed while already home: back to the top. */
+    /**
+     * Home pressed while already home: back to the top. Also takes an Art Institute artwork id to show
+     * right away: adb shell am start -n com.gathin.tvhome/.MainActivity --es art_id 143471
+     */
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        String artId = intent.getStringExtra("art_id");
+        if (artId != null) {
+            art.showNow(artId);
+            return;
+        }
         setAllAppsShown(false);
         scroll.smoothScrollTo(0, 0);
         focusFirst(front);
@@ -222,6 +287,7 @@ public class MainActivity extends Activity {
         tierAdapter.setTiles(pick(appTiles, layout.tier));
         allAdapter.setTiles(pick(appTiles, layout.all));
         // A rebuilt row keeps its old scroll offset otherwise, hiding whatever now sits first.
+        front.scrollToPosition(0);
         tier.scrollToPosition(0);
     }
 
@@ -328,8 +394,7 @@ public class MainActivity extends Activity {
         }
         List<String> order = layout.list(movingSection);
         int from = order.indexOf(movingPkg);
-        int cols = movingSection == AppLayout.Section.FRONT ? getResources().getInteger(R.integer.front_columns)
-                : movingSection == AppLayout.Section.ALL ? getResources().getInteger(R.integer.all_apps_columns) : 0;
+        int cols = movingSection == AppLayout.Section.ALL ? getResources().getInteger(R.integer.all_apps_columns) : 0;
         int to = from;
         if (key == KeyEvent.KEYCODE_DPAD_LEFT) to = from - 1;
         else if (key == KeyEvent.KEYCODE_DPAD_RIGHT) to = from + 1;

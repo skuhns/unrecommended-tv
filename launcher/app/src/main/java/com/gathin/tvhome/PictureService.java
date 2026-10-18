@@ -1,6 +1,18 @@
 package com.gathin.tvhome;
 
 import android.accessibilityservice.AccessibilityService;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Build;
+import android.graphics.PixelFormat;
+import android.view.ContextThemeWrapper;
+import android.view.KeyEvent;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.Toast;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -11,6 +23,8 @@ import android.view.accessibility.AccessibilityWindowInfo;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Hisense keeps picture mode and backlight in a vendor service no app can call, and its settings
@@ -31,19 +45,23 @@ public class PictureService extends AccessibilityService {
     private static final String ROW_MODE = "Picture Mode";
     private static final String ROW_BRIGHTNESS = "Brightness";
 
-    private static final long STEP_MS = 450L;
-    /** Moving between rows animates; keys that arrive mid-animation are dropped. */
-    private static final long ROW_STEP_MS = 550L;
+    /** Poll the menu this often while waiting for it to react to a key. */
+    private static final long POLL_MS = 60L;
+    /** Give up waiting for a visible change after this long (a press that changes nothing). */
+    private static final long SETTLE_MAX_MS = 700L;
+    /** Gap between the Right presses of a mode jump. */
+    private static final long MODE_KEY_MS = 180L;
     private static final long WAIT_MS = 6_000L;
     private static final int MAX_MODES = 16;
     private static final int MAX_CHOICES = 12;
-    private static final long FAST_STEP_MS = 140L;
+    private static final long FAST_STEP_MS = 90L;
 
     static final class Result {
         String mode;
         final List<String> modes = new ArrayList<>();
         final List<String> changed = new ArrayList<>();
         final List<String> skipped = new ArrayList<>();
+        boolean recipeRan;
         String error;
     }
 
@@ -85,14 +103,82 @@ public class PictureService extends AccessibilityService {
         return instance;
     }
 
+    /**
+     * The remote's TV/Guide button (keycode 172) opens the Picture panel over any app. On this TV
+     * remote keys never reach accessibility services (the system handles them first), but Hisense
+     * broadcasts every press, once per key-down, with its keycode. Guide does nothing here otherwise.
+     * (The Netflix button can't be used: its launch lives in MediaTek's core TV agent.)
+     */
+    static final int PANEL_KEY = 172;
+    private static final String HISENSE_KEY_ACTION = "com.hisense.INTERCEPT_BUTTON_OPERATING";
+
+    private final BroadcastReceiver keys = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context c, Intent i) {
+            if (i.getIntExtra("keycode", -1) == PANEL_KEY) toggleOverlay();
+        }
+    };
+
     @Override
     protected void onServiceConnected() {
         instance = this;
+        IntentFilter f = new IntentFilter(HISENSE_KEY_ACTION);
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(keys, f, Context.RECEIVER_EXPORTED);
+        else registerReceiver(keys, f);
+    }
+
+    // ---- the panel as an overlay over whatever is playing ------------------------------------------
+
+    private View overlay;
+
+    private void toggleOverlay() {
+        if (overlay != null) hideOverlay();
+        else if (!busy) showOverlay();
+    }
+
+    private void showOverlay() {
+        ContextThemeWrapper themed = new ContextThemeWrapper(this, R.style.Theme_TvHome_Panel);
+        overlay = LayoutInflater.from(themed).inflate(R.layout.activity_picture, null);
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_DIM_BEHIND, PixelFormat.TRANSLUCENT);
+        lp.dimAmount = 0.35f;
+        ((WindowManager) getSystemService(WINDOW_SERVICE)).addView(overlay, lp);
+        new PicturePanel(themed, overlay, new PicturePanel.Host() {
+            @Override
+            public void start(Intent intent) {
+                startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            }
+
+            @Override
+            public void beforeMenu() {
+                hideOverlay();   // the TV's menu needs the screen and the remote
+            }
+
+            @Override
+            public void afterLook(String summary) {
+                Toast.makeText(PictureService.this, summary, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void close() {
+                hideOverlay();
+            }
+        });
+    }
+
+    private void hideOverlay() {
+        if (overlay == null) return;
+        ((WindowManager) getSystemService(WINDOW_SERVICE)).removeView(overlay);
+        overlay = null;
     }
 
     @Override
     public boolean onUnbind(android.content.Intent intent) {
         instance = null;
+        unregisterReceiver(keys);
+        hideOverlay();
         return super.onUnbind(intent);
     }
 
@@ -110,20 +196,21 @@ public class PictureService extends AccessibilityService {
 
     // ---- public operations (call after starting DISPLAY_SETTINGS) --------------------------------
 
-    /** Switch to the first of {@code targets} this content offers (names compared loosely). Empty targets: just read. */
-    void setMode(List<String> targets, Done cb) {
-        Result r = new Result();
-        start(cb, r, () -> waitForRow(ROW_MODE, r, () -> findMode(targets, null, 0, r, () -> finish(r))));
-    }
-
     /**
-     * Switch to the first available mode in {@code targets}, then set each row of {@code recipe} on
-     * that mode (Hisense stores these per picture mode). Rows that don't exist are skipped, not fatal.
+     * Switch to the first of {@code targets} the playing content offers, then, if {@code recipeFor}
+     * returns settings for the mode it landed on, apply them to that mode.
      */
-    void applyRecipe(List<String> targets, List<Setting> recipe, Done cb) {
+    void applyLook(List<String> targets, Function<String, List<Setting>> recipeFor, Done cb) {
         Result r = new Result();
-        start(cb, r, () -> waitForRow(ROW_MODE, r,
-                () -> findMode(targets, null, 0, r, () -> runRecipe(recipe, 0, null, r))));
+        start(cb, r, () -> waitForRow(ROW_MODE, r, () -> chooseMode(targets, r, () -> {
+            List<Setting> recipe = r.mode != null ? recipeFor.apply(r.mode) : null;
+            if (recipe == null) {
+                finish(r);
+                return;
+            }
+            r.recipeRan = true;
+            runRecipe(recipe, 0, null, r);
+        })));
     }
 
     /** Open the menu's Brightness page with the Brightness slider selected, and leave it open. */
@@ -134,8 +221,8 @@ public class PictureService extends AccessibilityService {
                 fail(r, "lost track of the menu");
                 return;
             }
-            later(() -> waitForDecor(ROW_BRIGHTNESS, SystemClock.uptimeMillis(), r,
-                    () -> moveTo(ROW_BRIGHTNESS, 0, r, () -> release(r))));
+            waitForDecor(ROW_BRIGHTNESS, SystemClock.uptimeMillis(), r,
+                    () -> moveTo(ROW_BRIGHTNESS, 0, r, () -> release(r)));
         })));
     }
 
@@ -151,7 +238,7 @@ public class PictureService extends AccessibilityService {
         }
         busy = true;
         pending = cb;
-        later(first);
+        handler.postDelayed(first, POLL_MS);
     }
 
     private void finish(Result r) {
@@ -188,7 +275,7 @@ public class PictureService extends AccessibilityService {
                 } else if (SystemClock.uptimeMillis() - t0 > WAIT_MS) {
                     fail(r, "picture menu did not open");
                 } else {
-                    handler.postDelayed(this, 200);
+                    handler.postDelayed(this, POLL_MS);
                 }
             }
         };
@@ -202,7 +289,7 @@ public class PictureService extends AccessibilityService {
         } else if (SystemClock.uptimeMillis() - t0 > WAIT_MS) {
             fail(r, decor + " menu did not open");
         } else {
-            handler.postDelayed(() -> waitForDecor(decor, t0, r, then), 200);
+            handler.postDelayed(() -> waitForDecor(decor, t0, r, then), POLL_MS);
         }
     }
 
@@ -212,7 +299,8 @@ public class PictureService extends AccessibilityService {
     }
 
     private void moveTo(String row, int presses, Runnable then, Runnable missing) {
-        if (row.equals(valueOf(focusedRow(), ID_TITLE))) {
+        String here = focusedTitle();
+        if (row.equals(here)) {
             then.run();
             return;
         }
@@ -221,7 +309,29 @@ public class PictureService extends AccessibilityService {
             return;
         }
         global(presses < 12 ? GLOBAL_ACTION_DPAD_DOWN : GLOBAL_ACTION_DPAD_UP);
-        handler.postDelayed(() -> moveTo(row, presses + 1, then, missing), ROW_STEP_MS);
+        whenChanged(this::focusedTitle, here, () -> moveTo(row, presses + 1, then, missing));
+    }
+
+    private String focusedTitle() {
+        return valueOf(focusedRow(), ID_TITLE);
+    }
+
+    /**
+     * Continue as soon as {@code read} differs from {@code before} (the menu caught up with a key),
+     * or after SETTLE_MAX_MS if nothing visibly changed (e.g. Down on the last row).
+     */
+    private void whenChanged(Supplier<String> read, String before, Runnable then) {
+        long t0 = SystemClock.uptimeMillis();
+        Runnable poll = new Runnable() {
+            @Override
+            public void run() {
+                String now = read.get();
+                boolean moved = now != null && !now.equals(before);
+                if (moved || SystemClock.uptimeMillis() - t0 > SETTLE_MAX_MS) then.run();
+                else handler.postDelayed(this, POLL_MS);
+            }
+        };
+        handler.postDelayed(poll, POLL_MS);
     }
 
     // ---- recipes ---------------------------------------------------------------------------------
@@ -245,14 +355,14 @@ public class PictureService extends AccessibilityService {
                     fail(r, "lost track of the menu");
                     return;
                 }
-                later(() -> waitForDecor(s.page, SystemClock.uptimeMillis(), r, () -> applySetting(s, r, next)));
+                waitForDecor(s.page, SystemClock.uptimeMillis(), r, () -> applySetting(s, r, next));
             }, () -> fail(r, "page not found: " + s.page));
         }
     }
 
     private void leavePage(Result r, Runnable then) {
         global(GLOBAL_ACTION_BACK);
-        later(() -> waitForDecor(MENU_TITLE, SystemClock.uptimeMillis(), r, then));
+        waitForDecor(MENU_TITLE, SystemClock.uptimeMillis(), r, then);
     }
 
     private void applySetting(Setting s, Result r, Runnable next) {
@@ -285,7 +395,7 @@ public class PictureService extends AccessibilityService {
             return;
         }
         global(GLOBAL_ACTION_DPAD_RIGHT);
-        later(() -> pickChoice(s, first, steps + 1, r, next));
+        whenChanged(this::currentValue, cur, () -> pickChoice(s, first, steps + 1, r, next));
     }
 
     /** Sliders step by one per Left/Right; re-read and correct once in case a press was dropped. */
@@ -312,12 +422,16 @@ public class PictureService extends AccessibilityService {
     }
 
     private void press(int action, int times, Runnable then) {
+        press(action, times, FAST_STEP_MS, then);
+    }
+
+    private void press(int action, int times, long gap, Runnable then) {
         if (times <= 0) {
-            later(then);
+            handler.postDelayed(then, 250);
             return;
         }
         global(action);
-        handler.postDelayed(() -> press(action, times - 1, then), FAST_STEP_MS);
+        handler.postDelayed(() -> press(action, times - 1, gap, then), gap);
     }
 
     /** The focused row's value: the inline chooser while focused, else its summary line. */
@@ -333,6 +447,53 @@ public class PictureService extends AccessibilityService {
         } catch (NumberFormatException e) {
             return -1;
         }
+    }
+
+    /**
+     * The order Right steps through Picture Mode on this TV (55U8QG), per signal type. FILMMAKER MODE
+     * is in both SDR and HDR, so landing on it leaves the lane unknown (slow path).
+     */
+    private static final List<String> SDR_MODES = java.util.Arrays.asList(
+            "Theater Night", "FILMMAKER MODE", "Vivid", "Standard", "Sports", "Energy Saving", "Theater Day");
+    private static final List<String> HDR_MODES = java.util.Arrays.asList(
+            "HDR Theater", "FILMMAKER MODE", "IMAX Mode", "HDR Vivid", "HDR Standard", "HDR Sports", "HDR Energy Saving");
+    private static final List<String> DV_MODES = java.util.Arrays.asList(
+            "Dolby Vision IQ", "Dolby Vision Dark", "Dolby Vision Custom", "Dolby Vision Game");
+
+    private static List<String> laneOf(String mode) {
+        if (same(mode, "FILMMAKER MODE")) return null;
+        for (List<String> lane : java.util.Arrays.asList(DV_MODES, HDR_MODES, SDR_MODES)) {
+            if (containsLoose(lane, mode)) return lane;
+        }
+        return null;
+    }
+
+    private static int indexLoose(List<String> list, String s) {
+        for (int i = 0; i < list.size(); i++) if (same(list.get(i), s)) return i;
+        return -1;
+    }
+
+    /**
+     * Fast path: the current mode tells the lane, so press Right exactly as many times as the target
+     * is away and check once. Unknown lane or a miss falls back to walking the list.
+     */
+    private void chooseMode(List<String> targets, Result r, Runnable then) {
+        String cur = valueOf(focusedRow(), ID_INDICATOR);
+        List<String> lane = cur != null ? laneOf(cur) : null;
+        String target = null;
+        if (lane != null) for (String t : targets) if (containsLoose(lane, t)) { target = t; break; }
+        if (target == null) {
+            findMode(targets, null, 0, r, then);
+            return;
+        }
+        int steps = (indexLoose(lane, target) - indexLoose(lane, cur) + lane.size()) % lane.size();
+        String goal = target;
+        press(GLOBAL_ACTION_DPAD_RIGHT, steps, MODE_KEY_MS, () -> {
+            String now = valueOf(focusedRow(), ID_INDICATOR);
+            r.mode = now;
+            if (same(now, goal)) then.run();
+            else walkTo(goal, 0, r, then);
+        });
     }
 
     /**
@@ -356,7 +517,7 @@ public class PictureService extends AccessibilityService {
         boolean wrapped = steps > 0 && same(cur, first);
         if (!wrapped && steps < MAX_MODES) {
             global(GLOBAL_ACTION_DPAD_RIGHT);
-            later(() -> findMode(targets, first, steps + 1, r, then));
+            whenChanged(() -> valueOf(focusedRow(), ID_INDICATOR), cur, () -> findMode(targets, first, steps + 1, r, then));
             return;
         }
         if (!hasTargets) {
@@ -381,7 +542,7 @@ public class PictureService extends AccessibilityService {
             fail(r, "could not reach " + target);
         } else {
             global(GLOBAL_ACTION_DPAD_RIGHT);
-            later(() -> walkTo(target, steps + 1, r, then));
+            whenChanged(() -> valueOf(focusedRow(), ID_INDICATOR), cur, () -> walkTo(target, steps + 1, r, then));
         }
     }
 
@@ -401,14 +562,19 @@ public class PictureService extends AccessibilityService {
             return;
         }
         global(GLOBAL_ACTION_BACK);
-        handler.postDelayed(() -> closeMenu(tries + 1, then), 350);
+        long t0 = SystemClock.uptimeMillis();
+        Runnable poll = new Runnable() {
+            @Override
+            public void run() {
+                if (menuRoot() == null) then.run();
+                else if (SystemClock.uptimeMillis() - t0 > SETTLE_MAX_MS) closeMenu(tries + 1, then);
+                else handler.postDelayed(this, POLL_MS);
+            }
+        };
+        handler.postDelayed(poll, POLL_MS);
     }
 
     // ---- node helpers ----------------------------------------------------------------------------
-
-    private void later(Runnable r) {
-        handler.postDelayed(r, STEP_MS);
-    }
 
     private void global(int action) {
         performGlobalAction(action);

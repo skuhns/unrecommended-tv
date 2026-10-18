@@ -52,6 +52,14 @@ public class TileAdapter extends RecyclerView.Adapter<TileAdapter.Holder> {
     /** Left/Right run through the tiles in order and wrap around (used for the big 3×2 grid). */
     private boolean wrap;
     private RecyclerView attached;
+    /** In a grid, centre each tile in its cell (even spacing) instead of left-aligning it. */
+    private boolean centered;
+    /** Show the app's name under the focused tile. */
+    private boolean showNames = true;
+    /** Opacity of tiles that aren't focused (1 = solid); lets the painting show through. */
+    private float restAlpha = 1f;
+    /** Draw the white outline around the focused tile. */
+    private boolean focusRing = true;
 
     private final int widthPx, heightPx;
     /** Horizontal rows trap Left/Right at their ends so focus doesn't jump to another row. */
@@ -64,6 +72,22 @@ public class TileAdapter extends RecyclerView.Adapter<TileAdapter.Holder> {
         this.widthPx = widthPx;
         this.heightPx = heightPx;
         this.horizontal = horizontal;
+    }
+
+    void setFocusRing(boolean ring) {
+        focusRing = ring;
+    }
+
+    void setRestAlpha(float alpha) {
+        restAlpha = alpha;
+    }
+
+    void setShowNames(boolean show) {
+        showNames = show;
+    }
+
+    void setCentered(boolean centered) {
+        this.centered = centered;
     }
 
     void setWrap(boolean wrap) {
@@ -111,6 +135,10 @@ public class TileAdapter extends RecyclerView.Adapter<TileAdapter.Holder> {
         ViewGroup.LayoutParams lp = v.findViewById(R.id.card).getLayoutParams();
         lp.width = widthPx;
         lp.height = heightPx;
+        if (centered) {
+            v.getLayoutParams().width = ViewGroup.LayoutParams.MATCH_PARENT;
+            ((android.widget.LinearLayout) v).setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        }
         return new Holder(v);
     }
 
@@ -119,8 +147,10 @@ public class TileAdapter extends RecyclerView.Adapter<TileAdapter.Holder> {
         Tile t = tiles.get(position);
         h.name.setText(t.label);
         h.name.setAlpha(0f);
+        h.name.setVisibility(showNames ? View.VISIBLE : View.GONE);
         h.card.setScaleX(1f);
         h.card.setScaleY(1f);
+        h.card.setAlpha(h.card.isFocused() ? 1f : restAlpha);
         if (t.banner != null) {
             h.banner.setImageDrawable(t.banner);
             h.banner.setVisibility(View.VISIBLE);
@@ -134,8 +164,8 @@ public class TileAdapter extends RecyclerView.Adapter<TileAdapter.Holder> {
             h.label.setText(t.label);
             h.label.setVisibility(View.VISIBLE);
         }
-        h.card.setForeground(h.card.getContext().getDrawable(
-                position == movingPos ? R.drawable.tile_moving : R.drawable.tile_focus));
+        h.card.setForeground(position == movingPos ? h.card.getContext().getDrawable(R.drawable.tile_moving)
+                : focusRing ? h.card.getContext().getDrawable(R.drawable.tile_focus) : null);
         h.card.setOnClickListener(v -> t.onClick.run());
         h.card.setOnLongClickListener(t.onLongClick == null ? null : v -> {
             t.onLongClick.run();
@@ -190,13 +220,13 @@ public class TileAdapter extends RecyclerView.Adapter<TileAdapter.Holder> {
 
             card.setOnFocusChangeListener((view, focused) -> {
                 float s = focused ? FOCUS_SCALE : 1.0f;
-                view.animate().scaleX(s).scaleY(s)
+                view.animate().scaleX(s).scaleY(s).alpha(focused ? 1f : restAlpha)
                         .setDuration(focused ? 220 : 160)
                         .setInterpolator(new OvershootInterpolator(focused ? 1.4f : 0f))
                         .start();
                 // Tiles without a banner already show their label inside the card.
                 boolean hasBanner = banner.getVisibility() == View.VISIBLE;
-                name.animate().alpha(focused && hasBanner ? 1f : 0f).setDuration(180).start();
+                name.animate().alpha(focused && hasBanner && showNames ? 1f : 0f).setDuration(180).start();
                 int pos = getBindingAdapterPosition();
                 if (focused && focusListener != null && pos != RecyclerView.NO_POSITION) {
                     focusListener.onTileFocused(tiles.get(pos), view);

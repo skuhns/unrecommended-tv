@@ -30,6 +30,16 @@
     <string-array name="hidden_apps">
     </string-array>
 
-    <integer name="front_columns">3</integer>
-    <integer name="all_apps_columns">5</integer>
+    <integer name="all_apps_columns">6</integer>
+
+    <!-- Weather next to the greeting (Open-Meteo, no key): Chicago. -->
+    <string name="weather_lat" translatable="false">41.88</string>
+    <string name="weather_lon" translatable="false">-87.63</string>
+    <bool name="weather_fahrenheit">true</bool>
+
+    <!-- Game day: the team's games appear above the favourites on game day (ESPN abbreviation). -->
+    <string name="team" translatable="false">chi</string>
+    <string name="team_name" translatable="false">Bears</string>
+    <!-- Show the live score on the game-day label (off = spoiler-free). -->
+    <bool name="show_live_score">false</bool>
 </resources>

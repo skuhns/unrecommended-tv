@@ -27,11 +27,6 @@ import java.util.List;
  */
 final class NowPlayingBar {
 
-    /** Album art of what's playing, or null when nothing with art is playing. */
-    interface ArtListener {
-        void onArt(Bitmap art);
-    }
-
     static final String SPOTIFY = "com.spotify.tv.android";
     private static final long RESUME_TIMEOUT_MS = 10_000L;
     private static final long REFRESH_MS = 3_000L;
@@ -44,7 +39,7 @@ final class NowPlayingBar {
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private MediaController controller;
-    private ArtListener artListener;
+
     /** Set when Play was pressed with no Spotify session: start playing once Spotify's session shows up. */
     private long resumeRequestedAt;
     private long lastPlayNudge;
@@ -94,10 +89,6 @@ final class NowPlayingBar {
         activity.findViewById(R.id.npNext).setOnClickListener(v -> {
             if (controller != null) controller.getTransportControls().skipToNext();
         });
-    }
-
-    void setArtListener(ArtListener l) {
-        artListener = l;
     }
 
     void start() {
@@ -165,7 +156,6 @@ final class NowPlayingBar {
             subtitle.setText(R.string.np_idle_subtitle);
             art.setImageDrawable(appIcon(controller != null ? controller.getPackageName() : SPOTIFY));
             play.setImageResource(R.drawable.ic_play);
-            if (artListener != null) artListener.onArt(null);
             return;
         }
         String artist = md.getString(MediaMetadata.METADATA_KEY_ARTIST);
@@ -177,7 +167,6 @@ final class NowPlayingBar {
         if (bmp != null) art.setImageBitmap(bmp);
         else art.setImageDrawable(appIcon(controller.getPackageName()));
         play.setImageResource(isPlaying(controller) ? R.drawable.ic_pause : R.drawable.ic_play);
-        if (artListener != null) artListener.onArt(isPlaying(controller) ? bmp : null);
     }
 
     /**

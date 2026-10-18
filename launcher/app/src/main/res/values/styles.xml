@@ -32,13 +32,15 @@
         <item name="android:layout_height">46dp</item>
         <item name="android:layout_marginStart">10dp</item>
         <item name="android:padding">12dp</item>
-        <item name="android:background">@drawable/round_btn</item>
+        <item name="android:background">@drawable/glass_dark_round</item>
         <item name="android:tint">@drawable/pill_text</item>
         <item name="android:focusable">true</item>
         <item name="android:clickable">true</item>
     </style>
 
     <style name="SectionLabel">
+        <item name="android:shadowColor">#B3000000</item>
+        <item name="android:shadowRadius">6</item>
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginStart">12dp</item>

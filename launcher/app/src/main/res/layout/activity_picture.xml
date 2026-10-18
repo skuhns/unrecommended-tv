@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Picture panel: slides in on the right over the home screen. -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.gathin.tvhome.PanelFrame xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/panelRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -64,4 +65,4 @@
                 android:text="@string/picture_mode" />
         </LinearLayout>
     </ScrollView>
-</FrameLayout>
+</com.gathin.tvhome.PanelFrame>

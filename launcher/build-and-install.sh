@@ -11,8 +11,13 @@ export ANDROID_HOME="${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetool
 export PATH="$JAVA_HOME/bin:$PATH"
 [ -f local.properties ] || echo "sdk.dir=$ANDROID_HOME" > local.properties
 ./gradlew assembleDebug -q --console=plain
+# Installing briefly removes the launcher, so Android shows the last-used app instead. Note whether
+# home was showing, and if so bring it back afterwards (never interrupt something else).
+TOP=$(adb -s "$TV_SERIAL" shell dumpsys activity activities | grep -m1 topResumedActivity || true)
 adb -s "$TV_SERIAL" install -r app/build/outputs/apk/debug/app-debug.apk
 adb -s "$TV_SERIAL" shell cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity
+# Game day: read the antenna channel list (the TV's own scan) to tune the right channel.
+adb -s "$TV_SERIAL" shell pm grant com.gathin.tvhome android.permission.READ_TV_LISTINGS || true
 # Now-playing banner: notification access lets it read media sessions.
 adb -s "$TV_SERIAL" shell cmd notification allow_listener com.gathin.tvhome/com.gathin.tvhome.MediaListener
 # Picture panel: accessibility service that operates the TV's picture menu (kept alongside any others).
@@ -25,4 +30,5 @@ adb -s "$TV_SERIAL" shell settings put secure enabled_accessibility_services "${
 sleep 1
 adb -s "$TV_SERIAL" shell settings put secure enabled_accessibility_services "$CUR"
 adb -s "$TV_SERIAL" shell settings put secure accessibility_enabled 1
+case "$TOP" in *com.gathin.tvhome*) sleep 1; adb -s "$TV_SERIAL" shell input keyevent HOME ;; esac
 echo "Installed. Press Home on the remote to see it."
