@@ -827,6 +827,7 @@
   "panel_button": {
     "broadcast": "com.hisense.INTERCEPT_BUTTON_OPERATING",
     "extra": "keycode",
-    "keycode": 172
+    "keycode": 172,
+    "settings_keycode": 83
   }
 }

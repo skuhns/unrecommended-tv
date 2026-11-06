@@ -60,7 +60,8 @@ Your profile's `picture.json` describes your TV. Complete example: [`examples/hi
     ]
   },
   "panel_button": {                                // optional: remote button that opens the panel anywhere
-    "broadcast": "com.hisense.INTERCEPT_BUTTON_OPERATING", "extra": "keycode", "keycode": 172
+    "broadcast": "com.hisense.INTERCEPT_BUTTON_OPERATING", "extra": "keycode", "keycode": 172,
+    "settings_keycode": 83                        // optional: button that opens the full TV settings
   }
 }
 ```
@@ -94,6 +95,10 @@ Remote keys usually never reach accessibility services on TVs (the system handle
 buttons like *Netflix* are wired to their app deep in the firmware). Hisense broadcasts every key
 press as `com.hisense.INTERCEPT_BUTTON_OPERATING` with the keycode, which the launcher listens for.
 Pick a button that does nothing else; on the Hisense remote that's the small TV/Guide button (172).
+
+`settings_keycode` gives the remote's Settings (gear) button back. On Google TV that button opens a
+menu built into Google's home app, so it stops working once that app is disabled for this launcher.
+With `settings_keycode` set, the launcher opens the full Settings app on that press instead.
 
 To find what a button sends: `adb -s $TV_SERIAL shell getevent -lt` while pressing it (raw), and
 `adb -s $TV_SERIAL shell logcat | grep -i keycode` (Android keycode). To look for a vendor key

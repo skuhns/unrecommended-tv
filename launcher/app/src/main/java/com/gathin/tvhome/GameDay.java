@@ -232,7 +232,7 @@ final class GameDay {
         }
     }
 
-    /** Antenna first (no lag, no login), then a streaming app we have; ESPN alone isn't watchable here. */
+    /** Antenna first (no lag, no login), then a streaming app we have, else Live TV to find it. */
     private Watch howToWatch(Event e) {
         for (Station s : stations) {
             for (String n : e.networks) {
@@ -244,8 +244,8 @@ final class GameDay {
                 if (n.toLowerCase(Locale.US).startsWith(st[0])) return new Watch(st[2], () -> openApp(st[1]));
             }
         }
-        String name = e.networks.isEmpty() ? "TBD" : e.networks.get(0);
-        return new Watch(name, null);
+        if (e.networks.isEmpty()) return new Watch("TBD", null);
+        return new Watch(e.networks.get(0), channels::openAntenna);
     }
 
     /** Tune the antenna to {@code s}; without that channel (no scan yet), open the antenna input to scan. */

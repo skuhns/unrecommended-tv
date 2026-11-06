@@ -63,6 +63,11 @@
                 android:id="@+id/openModes"
                 style="@style/PanelButton"
                 android:text="@string/picture_mode" />
+
+            <TextView
+                android:id="@+id/openSettings"
+                style="@style/PanelButton"
+                android:text="@string/all_settings" />
         </LinearLayout>
     </ScrollView>
 </com.gathin.tvhome.PanelFrame>

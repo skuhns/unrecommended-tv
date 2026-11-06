@@ -60,6 +60,10 @@ final class PicturePanel {
             host.beforeMenu();
             if (openMenu()) host.close();
         });
+        root.findViewById(R.id.openSettings).setOnClickListener(v -> {
+            host.beforeMenu();
+            if (open(new Intent(Settings.ACTION_SETTINGS))) host.close();
+        });
         ((PanelFrame) root).setOnBack(host::close);
 
         render(null);

@@ -35,7 +35,7 @@ RAM used by the home screen dropped from ~210 MB (Google's launcher) to ~80 MB.
 **Settings audit (vs the research).** Already right: HDMI Format *Enhanced* on all inputs, light sensor,
 AI energy saving and Intelligent Scene off, Instant Game Response *Auto*. Changed: **Content Type Auto
 Detection → Off** (it switched modes by itself). Left: FreeSync off (no console), standby energy *Low*.
-Screensaver off, auto-off after 1 hour.
+Screensaver off.
 
 **Picture lanes found** (each with its own modes and settings):
 
@@ -55,6 +55,7 @@ Screensaver off, auto-off after 1 hour.
 
 **Remote button.** The **TV/Guide button (172)** opens the panel over anything. The Netflix button
 can't be used: its launch lives in MediaTek's core TV agent, which also runs the picture database.
+The **Settings button (83)** opens the full Settings app (its stock menu went with the Google TV home app).
 
 **Quirks.**
 - Hisense's picture menu is a floating window plus a tooltip window from the same package; row titles

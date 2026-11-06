@@ -41,7 +41,7 @@ public class PictureService extends AccessibilityService {
     private static final long POLL_MS = 60L;
     /** Give up waiting for a visible change after this long (a press that changes nothing). */
     private static final long SETTLE_MAX_MS = 700L;
-    /** Gap between the Right presses of a mode jump. */
+    /** Gap between the presses of a mode jump. */
     private static final long MODE_KEY_MS = 180L;
     private static final long WAIT_MS = 6_000L;
     private static final int MAX_MODES = 16;
@@ -104,7 +104,9 @@ public class PictureService extends AccessibilityService {
     private final BroadcastReceiver keys = new BroadcastReceiver() {
         @Override
         public void onReceive(Context c, Intent i) {
-            if (i.getIntExtra(cfg.panelExtra, -1) == cfg.panelKeycode) toggleOverlay();
+            int key = i.getIntExtra(cfg.panelExtra, -1);
+            if (key == cfg.panelKeycode) toggleOverlay();
+            else if (key == cfg.settingsKeycode && !busy) openSettings();
         }
     };
 
@@ -160,6 +162,14 @@ public class PictureService extends AccessibilityService {
                 hideOverlay();
             }
         });
+    }
+
+    private void openSettings() {
+        hideOverlay();
+        try {
+            startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (android.content.ActivityNotFoundException ignored) {
+        }
     }
 
     private void hideOverlay() {
@@ -463,8 +473,9 @@ public class PictureService extends AccessibilityService {
     }
 
     /**
-     * Fast path: the current mode tells the lane, so press Right exactly as many times as the target
-     * is away and check once. Unknown lane or a miss falls back to walking the list.
+     * Fast path: the current mode tells the lane, so press Right or Left (the list wraps; whichever is
+     * shorter) exactly as many times as the target is away and check once. Unknown lane or a miss falls
+     * back to walking the list.
      */
     private void chooseMode(List<String> targets, Result r, Runnable then) {
         String cur = valueText(focusedRow());
@@ -477,7 +488,8 @@ public class PictureService extends AccessibilityService {
         }
         int steps = (indexLoose(lane, target) - indexLoose(lane, cur) + lane.size()) % lane.size();
         String goal = target;
-        press(GLOBAL_ACTION_DPAD_RIGHT, steps, MODE_KEY_MS, () -> {
+        boolean left = steps > lane.size() / 2;
+        press(left ? GLOBAL_ACTION_DPAD_LEFT : GLOBAL_ACTION_DPAD_RIGHT, left ? lane.size() - steps : steps, MODE_KEY_MS, () -> {
             String now = valueText(focusedRow());
             r.mode = now;
             if (same(now, goal)) then.run();

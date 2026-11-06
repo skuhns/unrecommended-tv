@@ -29,4 +29,5 @@
     <string name="picture_service_desc">Lets the Home launcher change picture mode and brightness by operating the TV\'s picture menu for you.</string>
     <string name="tv_settings">TV settings</string>
     <string name="picture_mode">Picture mode</string>
+    <string name="all_settings">All settings</string>
 </resources>

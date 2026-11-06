@@ -18,7 +18,7 @@ import android.view.View;
  */
 public class BackdropView extends View {
 
-    private static final long WALL_FADE_MS = 1_500L;
+    static final long WALL_FADE_MS = 1_500L;
 
     private final Paint wallPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Paint topShade = new Paint();

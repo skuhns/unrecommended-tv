@@ -45,6 +45,8 @@ final class PictureConfig {
     // The remote button that opens the panel over any app (a vendor broadcast carrying the keycode)
     String panelBroadcast = "", panelExtra = "keycode";
     int panelKeycode = -1;
+    // A button on the same broadcast that opens the TV's full settings (Google TV's gear menu goes with its home app)
+    int settingsKeycode = -1;
 
     private static PictureConfig instance;
 
@@ -109,6 +111,7 @@ final class PictureConfig {
                 c.panelBroadcast = button.optString("broadcast");
                 c.panelExtra = button.optString("extra", c.panelExtra);
                 c.panelKeycode = button.optInt("keycode", -1);
+                c.settingsKeycode = button.optInt("settings_keycode", -1);
             }
         } catch (Exception e) {
             android.util.Log.w("PictureConfig", "picture.json unreadable; Picture panel off", e);

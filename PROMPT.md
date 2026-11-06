@@ -65,7 +65,7 @@ appears on game day.
 settings by reading the menus (a table of current vs recommended). Ask before changing anything, then
 fix the one-time ones (e.g. not Energy Saving, automatic picture-mode switching off, light sensor off,
 HDMI Enhanced format for 4K HDR devices). Recommend turning off the screensaver (the art rotates; LCD
-and mini-LED don't burn in) with auto-off after an hour.
+and mini-LED don't burn in); leave auto-off to the TV's own power settings.
 
 **9. Picture looks** (if the TV's picture menu can be driven; see docs/PICTURE.md). Build
 `examples/<my-tv>/picture.json`: the menu's package, titles and on-screen ids; the picture-mode order for

@@ -147,12 +147,12 @@ Also worth doing once, on any TV (from the picture research, see the
 
 ## 8. Nice extras
 
-- **No screensaver.** The paintings already change, and LCD/mini-LED TVs don't burn in. Turn it off
-  and set the TV to turn off after an hour idle:
+- **No screensaver.** The paintings already change, and LCD/mini-LED TVs don't burn in. Without a
+  screensaver Android blanks the screen at its hidden screen-off timeout (often 10 minutes), even
+  with music playing, so turn that off too and leave auto-off to the TV's own power settings:
   ```bash
   adb -s $TV_SERIAL shell settings put secure screensaver_enabled 0
-  adb -s $TV_SERIAL shell settings put system screen_off_timeout 3600000
-  adb -s $TV_SERIAL shell settings put secure sleep_timeout 3600000
+  adb -s $TV_SERIAL shell settings put system screen_off_timeout 2147483647
   ```
 - **Antenna:** plug it in, then on game day press the game label (or open Live TV) and choose **Scan**.
 - **Show a specific painting:** `adb -s $TV_SERIAL shell am start -n com.gathin.tvhome/.MainActivity --es art_id <id>`

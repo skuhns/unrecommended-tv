@@ -23,6 +23,9 @@ Everything here went wrong at least once.
   any other app, so `set-home-activity` and the default-home setting are ignored. Disable
   `com.google.android.apps.tv.launcherx` and `com.google.android.tungsten.setupwraith` (which re-enables
   it). The mic button, Ambient mode and the Input button keep working without it.
+- **The remote's Settings button does nothing** after disabling Google TV's home app: its menu lived
+  there. Set `settings_keycode` in `picture.json` (see [PICTURE.md](PICTURE.md#the-remote-button)), or
+  use *All settings* at the bottom of the Picture panel.
 - **A random app (YouTube…) is open after installing.** Installing briefly removes the launcher and
   Android shows the last-used app. The install script presses Home afterwards if home was showing.
 - **No on-screen keyboard after switching launchers** (seen on Xiaomi): the default keyboard pointed at

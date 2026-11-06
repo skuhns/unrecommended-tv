@@ -157,12 +157,20 @@ public class MainActivity extends Activity {
 
         View artLabel = findViewById(R.id.artLabel);
         TextView artTitle = findViewById(R.id.artTitle), artByline = findViewById(R.id.artByline);
+        // Selected (not focused) is what lets a too-long line scroll.
+        artTitle.setSelected(true);
+        artByline.setSelected(true);
         art = new ArtRotator((image, title, byline) -> {
             backdrop.setWallpaper(image);
-            artTitle.setText(title);
-            artByline.setText(byline);
-            artByline.setVisibility(byline.isEmpty() ? View.GONE : View.VISIBLE);
-            artLabel.setVisibility(View.VISIBLE);
+            // Fade out, swap the text while hidden, fade in: together, the crossfade's length.
+            long half = BackdropView.WALL_FADE_MS / 2;
+            artLabel.animate().alpha(0f).setDuration(artLabel.getVisibility() == View.VISIBLE ? half : 0).withEndAction(() -> {
+                artTitle.setText(title);
+                artByline.setText(byline);
+                artByline.setVisibility(byline.isEmpty() ? View.GONE : View.VISIBLE);
+                artLabel.setVisibility(View.VISIBLE);
+                artLabel.animate().alpha(1f).setDuration(half);
+            });
         });
 
         // The first screen is exactly one screen tall: clock, top bar, favourites. The rest is below.
